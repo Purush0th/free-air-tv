@@ -1,6 +1,9 @@
 # Renders the FreeAir TV artwork in art\ into the app's PNG resources with headless Chrome.
 # Usage: powershell -ExecutionPolicy Bypass -File art\render.ps1
 # Needs Chrome and network access (banner.html loads Plus Jakarta Sans from Google Fonts).
+#
+# Images are rendered larger than their density bucket needs: TV launchers (Projectivy,
+# the Fire TV home) scale banners and icons up to big tiles, and a small bitmap blurs.
 $ErrorActionPreference = 'Stop'
 $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
             "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
@@ -25,12 +28,15 @@ function Shot($page, $w, $h, $scale, $out) {
     Write-Host "  $out"
 }
 
-# Fire TV banner: 320x180 (xhdpi) and 480x270 (xxhdpi), drawn at 640x360.
-Shot 'banner.html' 640 360 0.5  "$res\drawable-xhdpi\banner.png"
-Shot 'banner.html' 640 360 0.75 "$res\drawable-xxhdpi\banner.png"
+# Fire TV banner: 1280x720 in drawable-xxxhdpi, which Android treats as the standard
+# 320x180dp banner and scales down on the Stick. In a lower-density folder the same bitmap
+# would claim to be larger than a banner, and Projectivy crops the overflow.
+Remove-Item "$res\drawable-xhdpi\banner.png", "$res\drawable-xxhdpi\banner.png" -ErrorAction SilentlyContinue
+Shot 'banner.html' 1280 720 1 "$res\drawable-xxxhdpi\banner.png"
 
-# Launcher icon (48dp) and the guide's header logo (40dp), from the 200x200 icon.
-Shot 'icon.html' 200 200 0.48 "$res\mipmap-xhdpi\ic_launcher.png"
-Shot 'icon.html' 200 200 0.72 "$res\mipmap-xxhdpi\ic_launcher.png"
+# Launcher icon (48dp): one 192px copy in mipmap-xxxhdpi; Android scales it down on the Stick.
+Remove-Item "$res\mipmap-xhdpi\ic_launcher.png", "$res\mipmap-xxhdpi\ic_launcher.png" -ErrorAction SilentlyContinue
 Shot 'icon.html' 200 200 0.96 "$res\mipmap-xxxhdpi\ic_launcher.png"
-Shot 'icon.html' 200 200 0.4  "$res\drawable-xhdpi\logo_mark.png"
+
+# The guide and settings header logo (40dp): 160px, twice what xhdpi needs.
+Shot 'icon.html' 200 200 0.8 "$res\drawable-xhdpi\logo_mark.png"
