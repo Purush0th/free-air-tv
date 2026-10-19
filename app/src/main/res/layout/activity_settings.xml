@@ -30,13 +30,6 @@
             android:text="@string/settings"
             android:textColor="@color/ink"
             android:textSize="26sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_hint"
-            android:textColor="@color/faint"
-            android:textSize="15sp" />
     </LinearLayout>
 
     <!-- One column, at a readable width; the rest of the screen stays calm. -->

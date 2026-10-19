@@ -16,3 +16,6 @@ channels.current.json
 *.iml
 Thumbs.db
 .DS_Store
+
+# Downloaded libraries (see deps.lock)
+.deps/

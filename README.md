@@ -2,8 +2,9 @@
 
 A simple live TV app for Fire TV and Android TV that plays free-to-air Tamil channels: devotional, general entertainment and news. Pick a channel from the guide with the remote and it plays full screen, in English and Tamil, with no ads, accounts or YouTube.
 
-- **Channel guide** grouped as Devotional, General and News, with each channel's Tamil name.
-- **Choose your channels**: Settings (Menu button) lists every channel with a Shown/Hidden switch. Hidden channels leave the guide and are skipped when changing channel.
+- **Channel list** in a side panel, with each channel's Tamil name.
+- **Picture and sound**: pick the stream quality (Auto, or any resolution the channel offers, such as 1080p or 720p; the choice applies to every channel), the app volume, and mute. Playback uses [Media3 ExoPlayer](https://developer.android.com/media/media3/exoplayer).
+- **Choose your channels**: Settings (the gear at the top of the channel list) shows every channel by group, each with a Shown/Hidden switch. Hidden channels leave the list and are skipped when changing channel.
 - **Channel list updates from this repository**: edit [`channels.json`](channels.json) and every TV picks it up within six hours, or at once with Settings > Refresh channel list.
 - **Updates itself from GitHub Releases**: the app finds new versions, downloads them, checks their SHA-256, and asks for one press of Install on the TV.
 
@@ -23,9 +24,15 @@ A simple live TV app for Fire TV and Android TV that plays free-to-air Tamil cha
 
 ## Remote
 
-| In the guide | While watching |
-| --- | --- |
-| Up/Down: move · OK: watch · Back: exit · Menu: Settings | Up/Down: change channel · OK or Left: guide · Right: channel info · Play: jump to live |
+| Button | While watching | In a panel |
+| --- | --- | --- |
+| Up / Down | Next / previous channel | Move |
+| OK or Left | Open the channel list | Choose |
+| Right or Menu | Open Picture and sound | Left/Right change the volume on its row |
+| Back | Twice to leave the app | Close the panel |
+| Play/Pause | Pause; press again to return to live | |
+
+The app volume is separate from the TV's: the Fire TV remote's volume buttons still control the TV.
 
 ## Editing the channel list
 
@@ -43,7 +50,7 @@ To try a list on one TV before publishing it: `.\set-channels.ps1 -File my-chann
 
 ## Building
 
-No Gradle; the build uses the Android SDK tools directly (`aapt2`, `javac`, `d8`, `apksigner`).
+No Gradle; the build uses the Android SDK tools directly (`aapt2`, `javac`, `d8`, `apksigner`). Libraries (Media3 ExoPlayer and its dependencies) are pinned with SHA-256 checksums in [`deps.lock`](deps.lock); the build downloads them into `.deps/` and stops if a checksum doesn't match.
 
 - **Windows:** `powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.1.0`
 - **Linux:** `VERSION=1.1.0 KEYSTORE_FILE=… KEYSTORE_PASSWORD=… ./build.sh`

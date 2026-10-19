@@ -2,59 +2,57 @@ package com.purush.freeairtv;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.BaseAdapter;
+import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.VideoView;
+import android.widget.Toast;
+
+import androidx.media3.common.PlaybackException;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * FreeAir TV: free-to-air channels played full screen, with a channel guide.
- * The channel list comes from {@link ChannelStore}; updates from {@link Updater}.
+ * FreeAir TV: free-to-air channels played full screen.
+ *
+ * <p>Remote: Up/Down change channel (Up = next). OK or Left opens the channel list; Right
+ * (or Menu) opens the player panel with quality, volume and mute. Back closes whichever
+ * panel is open; in full screen, Back twice leaves the app.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements LivePlayer.Listener {
 
     private static final String TAG = "FreeAirTv";
     private static final long RETRY_DELAY_MS = 5_000;
     // Restart if buffering never recovers (live HLS sometimes stalls without an error).
     private static final long STALL_TIMEOUT_MS = 30_000;
+    // Show "Connecting…" only if buffering lasts long enough to notice.
+    private static final long CONNECTING_DELAY_MS = 700;
     private static final long BANNER_MS = 4_000;
+    private static final long TOAST_MS = 2_000;
+    private static final long EXIT_WINDOW_MS = 2_500;
     // After this many failed attempts in a row, suggest moving on.
     private static final int HINT_AFTER_FAILURES = 3;
     // How often to see whether the channel list or a release is due for a check.
     private static final long BACKGROUND_TICK_MS = 60L * 60 * 1000;
+    private static final int VOLUME_STEP = 10;
 
-    /** Guide rows that are not channels. Group headings are -1 - groupIndex. */
-    private static final int ROW_UPDATE = Integer.MIN_VALUE;
-    private static final int ROW_SETTINGS = Integer.MIN_VALUE + 1;
-
-    /** Tamil names for the standard groups; other groups show their name alone. */
-    private static final Map<String, String> GROUP_TAMIL = new HashMap<>();
-    static {
-        GROUP_TAMIL.put("Devotional", "பக்தி");
-        GROUP_TAMIL.put("General", "பொழுதுபோக்கு");
-        GROUP_TAMIL.put("News", "செய்திகள்");
-    }
+    /** Guide row that is not a channel. */
+    private static final int ROW_UPDATE = -1;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService background = Executors.newSingleThreadExecutor();
@@ -63,27 +61,37 @@ public class MainActivity extends Activity {
         this.failures++;
         play(this.current);
     };
+    private final Runnable showConnecting = this::showConnecting;
     private final Runnable hideBanner = () -> this.banner.setVisibility(View.GONE);
+    private final Runnable hideVolumeToast = () -> this.volumeToast.setVisibility(View.GONE);
     private final Runnable backgroundTick = this::checkInBackground;
 
     private ChannelStore store;
     private Updater updater;
+    private LivePlayer player;
     private final List<Channel> channels = new ArrayList<>();
     private final List<Integer> rows = new ArrayList<>();
-    private final List<String> groups = new ArrayList<>();
+    private final List<OptionRow> options = new ArrayList<>();
     private Updater.Release update;
     private int current;
     private int failures;
+    private long backPressedAt;
 
-    private VideoView video;
+    private FrameLayout root;
+    private SurfaceView surface;
     private TextView status;
     private View banner;
     private TextView bannerNum;
     private TextView bannerName;
     private TextView bannerTamil;
+    private TextView bannerQuality;
+    private TextView volumeToast;
     private View guide;
     private ListView list;
-    private GuideAdapter adapter;
+    private View optionsPanel;
+    private ListView optionsList;
+    private GuideAdapter guideAdapter;
+    private OptionsAdapter optionsAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,56 +99,52 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         store = new ChannelStore(this);
         updater = new Updater(this);
-        video = findViewById(R.id.video);
+        root = (FrameLayout) surfaceParent();
+        surface = findViewById(R.id.surface);
         status = findViewById(R.id.status);
         banner = findViewById(R.id.banner);
         bannerNum = findViewById(R.id.banner_num);
         bannerName = findViewById(R.id.banner_name);
         bannerTamil = findViewById(R.id.banner_tamil);
+        bannerQuality = findViewById(R.id.banner_quality);
+        volumeToast = findViewById(R.id.volume_toast);
         guide = findViewById(R.id.guide);
         list = findViewById(R.id.list);
+        optionsPanel = findViewById(R.id.options);
+        optionsList = findViewById(R.id.options_list);
 
-        adapter = new GuideAdapter();
-        list.setAdapter(adapter);
+        guideAdapter = new GuideAdapter();
+        list.setAdapter(guideAdapter);
         list.setOnItemClickListener((parent, view, position, id) -> {
             int row = rows.get(position);
-            if (row == ROW_SETTINGS) {
-                startActivity(new Intent(this, SettingsActivity.class));
-            } else if (row == ROW_UPDATE) {
+            if (row == ROW_UPDATE) {
                 startActivity(new Intent(this, SettingsActivity.class)
                         .putExtra(SettingsActivity.EXTRA_INSTALL_UPDATE, true));
-            } else if (row >= 0) {
-                if (row != current || !video.isPlaying()) {
-                    failures = 0;
-                    play(row);
-                }
-                hideGuide();
+                return;
             }
+            if (row != current || player.isPaused()) {
+                failures = 0;
+                play(row);
+            }
+            hideGuide();
         });
+        findViewById(R.id.settings_button).setOnClickListener(
+                v -> startActivity(new Intent(this, SettingsActivity.class)));
 
-        video.setOnPreparedListener(mp -> {
-            handler.removeCallbacks(stallWatchdog);
-            failures = 0;
-            status.setVisibility(View.GONE);
-        });
-        video.setOnInfoListener((mp, what, extra) -> {
-            if (what == MediaPlayer.MEDIA_INFO_BUFFERING_START) {
-                showConnecting();
-                armWatchdog();
-            } else if (what == MediaPlayer.MEDIA_INFO_BUFFERING_END
-                    || what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                handler.removeCallbacks(stallWatchdog);
-                status.setVisibility(View.GONE);
-            }
-            return false;
-        });
-        video.setOnErrorListener((mp, what, extra) -> {
-            Log.w(TAG, "Playback error " + what + "/" + extra + " on " + currentName());
-            scheduleRetry();
-            return true; // suppress the platform "Can't play this video" dialog
-        });
-        // A live stream "completing" means the feed ended or dropped.
-        video.setOnCompletionListener(mp -> scheduleRetry());
+        // Draw the white highlight only while the list has focus; otherwise it would stay behind
+        // a row whose text has turned white again (e.g. when focus moves up to Settings).
+        list.setOnFocusChangeListener((v, has) -> list.setSelector(
+                has ? R.drawable.list_selector : android.R.color.transparent));
+
+        optionsAdapter = new OptionsAdapter();
+        optionsList.setAdapter(optionsAdapter);
+        optionsList.setOnItemClickListener((parent, view, position, id) -> onOptionClicked(options.get(position)));
+
+        player = new LivePlayer(this, surface, this);
+    }
+
+    private View surfaceParent() {
+        return ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
     }
 
     @Override
@@ -153,12 +157,11 @@ public class MainActivity extends Activity {
         if (channels.isEmpty()) {
             status.setText(R.string.no_channels);
             status.setVisibility(View.VISIBLE);
-            showGuide();
         } else {
             failures = 0;
             play(current);
-            showGuide();
         }
+        showGuide();
         handler.post(backgroundTick);
     }
 
@@ -166,13 +169,14 @@ public class MainActivity extends Activity {
     protected void onStop() {
         super.onStop();
         handler.removeCallbacksAndMessages(null);
-        video.stopPlayback();
+        player.stop();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         background.shutdownNow();
+        player.release();
     }
 
     // ---- Channel list ---------------------------------------------------------------
@@ -188,31 +192,17 @@ public class MainActivity extends Activity {
             }
         }
         buildRows();
-        adapter.notifyDataSetChanged();
+        guideAdapter.notifyDataSetChanged();
     }
 
-    /** Group headings wherever the group changes; Update first and Settings last. */
     private void buildRows() {
         rows.clear();
-        groups.clear();
         if (update != null) {
             rows.add(ROW_UPDATE);
         }
-        String last = null;
         for (int i = 0; i < channels.size(); i++) {
-            String g = channels.get(i).group;
-            if (!g.isEmpty() && !g.equals(last)) {
-                groups.add(g);
-                rows.add(-groups.size());
-            }
-            last = g;
             rows.add(i);
         }
-        rows.add(ROW_SETTINGS);
-    }
-
-    private static boolean isHeading(int row) {
-        return row < 0 && row != ROW_UPDATE && row != ROW_SETTINGS;
     }
 
     private int rowOf(int channel) {
@@ -253,7 +243,7 @@ public class MainActivity extends Activity {
             }
         } else if (updateChanged) {
             buildRows();
-            adapter.notifyDataSetChanged();
+            guideAdapter.notifyDataSetChanged();
         }
     }
 
@@ -269,15 +259,14 @@ public class MainActivity extends Activity {
         Log.i(TAG, "Playing " + ch.name + " " + ch.url);
 
         handler.removeCallbacks(retry);
+        handler.removeCallbacks(showConnecting);
         if (failures == 0) {
-            showConnecting();
+            handler.postDelayed(showConnecting, CONNECTING_DELAY_MS);
         }
-        video.stopPlayback();
-        video.setVideoURI(Uri.parse(ch.url));
-        video.start(); // VideoView begins playback as soon as it is prepared
+        player.play(ch.url);
         armWatchdog();
         list.setItemChecked(rowOf(current), true);
-        adapter.notifyDataSetChanged();
+        guideAdapter.notifyDataSetChanged();
     }
 
     private void zap(int delta) {
@@ -294,8 +283,31 @@ public class MainActivity extends Activity {
         handler.postDelayed(stallWatchdog, STALL_TIMEOUT_MS);
     }
 
-    private void scheduleRetry() {
+    private void showConnecting() {
+        status.setText(getString(R.string.connecting, currentName()));
+        status.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onBuffering() {
+        handler.removeCallbacks(showConnecting);
+        handler.postDelayed(showConnecting, CONNECTING_DELAY_MS);
+        armWatchdog();
+    }
+
+    @Override
+    public void onPlaying() {
         handler.removeCallbacks(stallWatchdog);
+        handler.removeCallbacks(showConnecting);
+        failures = 0;
+        status.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onError(PlaybackException error) {
+        Log.w(TAG, "Playback failed on " + currentName(), error);
+        handler.removeCallbacks(stallWatchdog);
+        handler.removeCallbacks(showConnecting);
         failures++;
         int msg = failures >= HINT_AFTER_FAILURES ? R.string.retrying_hint : R.string.retrying;
         status.setText(getString(msg, currentName()));
@@ -304,9 +316,37 @@ public class MainActivity extends Activity {
         handler.postDelayed(retry, RETRY_DELAY_MS);
     }
 
-    private void showConnecting() {
-        status.setText(getString(R.string.connecting, currentName()));
-        status.setVisibility(View.VISIBLE);
+    /** Fits the picture to the screen at the stream's aspect ratio. */
+    @Override
+    public void onVideoSize(int width, int height) {
+        int w = root.getWidth();
+        int h = root.getHeight();
+        if (w == 0 || h == 0) {
+            return;
+        }
+        float video = (float) width / height;
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) surface.getLayoutParams();
+        if ((float) w / h > video) {
+            lp.width = Math.round(h * video);
+            lp.height = h;
+        } else {
+            lp.width = w;
+            lp.height = Math.round(w / video);
+        }
+        surface.setLayoutParams(lp);
+    }
+
+    @Override
+    public void onQualityChanged() {
+        updateBannerQuality();
+        if (optionsPanel.getVisibility() == View.VISIBLE) {
+            buildOptions();
+        }
+    }
+
+    private void updateBannerQuality() {
+        int h = player.playingHeight();
+        bannerQuality.setText(h > 0 ? getString(R.string.live_quality, h) : getString(R.string.live));
     }
 
     private void showBanner() {
@@ -318,46 +358,36 @@ public class MainActivity extends Activity {
         bannerName.setText(ch.name);
         bannerTamil.setText(ch.tamil);
         bannerTamil.setVisibility(ch.tamil.isEmpty() ? View.GONE : View.VISIBLE);
+        updateBannerQuality();
         banner.setVisibility(View.VISIBLE);
         handler.removeCallbacks(hideBanner);
         handler.postDelayed(hideBanner, BANNER_MS);
     }
 
-    // ---- Guide and remote -----------------------------------------------------------
+    private void showVolumeToast() {
+        volumeToast.setText(player.muted() ? getString(R.string.muted)
+                : getString(R.string.volume_value, player.volume()));
+        volumeToast.setVisibility(View.VISIBLE);
+        handler.removeCallbacks(hideVolumeToast);
+        handler.postDelayed(hideVolumeToast, TOAST_MS);
+    }
+
+    // ---- Panels ---------------------------------------------------------------------
 
     private boolean guideVisible() {
         return guide.getVisibility() == View.VISIBLE;
     }
 
+    private boolean optionsVisible() {
+        return optionsPanel.getVisibility() == View.VISIBLE;
+    }
+
     private void showGuide() {
+        hideOptions();
         banner.setVisibility(View.GONE);
         guide.setVisibility(View.VISIBLE);
         list.requestFocus();
-        if (channels.isEmpty()) {
-            list.setSelection(rows.size() - 1);
-            return;
-        }
-        // Open with the channel's group heading in view; deep in a group, keep two rows above.
-        int row = rowOf(current);
-        int top = row;
-        while (top > 0 && rows.get(top - 1) >= 0 && row - top < 2) {
-            top--;
-        }
-        if (top > 0 && isHeading(rows.get(top - 1))) {
-            top--;
-        }
-        list.setSelection(row);
-        list.setSelectionFromTop(row, rowTop(top, row));
-    }
-
-    /** Distance from the list top to {@code row} when {@code first} is the top row. */
-    private int rowTop(int first, int row) {
-        float dp = 0;
-        for (int i = first; i < row; i++) {
-            dp += isHeading(rows.get(i)) ? 46 : 66; // heading and row heights, in dp
-        }
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
-                getResources().getDisplayMetrics());
+        list.setSelection(rowOf(current));
     }
 
     private void hideGuide() {
@@ -365,32 +395,102 @@ public class MainActivity extends Activity {
         showBanner();
     }
 
+    private void showOptions() {
+        guide.setVisibility(View.GONE);
+        banner.setVisibility(View.GONE);
+        buildOptions();
+        optionsPanel.setVisibility(View.VISIBLE);
+        optionsList.requestFocus();
+        // Start on the quality that is selected.
+        for (int i = 0; i < options.size(); i++) {
+            OptionRow r = options.get(i);
+            if (r.kind == OptionRow.QUALITY && r.height == player.quality()) {
+                optionsList.setSelection(i);
+                break;
+            }
+        }
+    }
+
+    private void hideOptions() {
+        optionsPanel.setVisibility(View.GONE);
+    }
+
     @Override
     public void onBackPressed() {
-        if (guideVisible() || channels.isEmpty()) {
-            super.onBackPressed(); // Back on the list leaves the app
+        if (optionsVisible()) {
+            hideOptions();
+            return;
+        }
+        if (guideVisible() && !channels.isEmpty()) {
+            hideGuide();
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - backPressedAt < EXIT_WINDOW_MS || channels.isEmpty()) {
+            super.onBackPressed();
         } else {
-            showGuide();
+            backPressedAt = now;
+            Toast.makeText(this, R.string.press_back_to_exit, Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_MENU) {
-            startActivity(new Intent(this, SettingsActivity.class));
-            return true;
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        // In the player panel, Left/Right on the volume row change the volume.
+        if (optionsVisible() && event.getAction() == KeyEvent.ACTION_DOWN) {
+            int code = event.getKeyCode();
+            Object sel = optionsList.getSelectedItem();
+            if (sel instanceof OptionRow && ((OptionRow) sel).kind == OptionRow.VOLUME
+                    && (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+                int step = code == KeyEvent.KEYCODE_DPAD_RIGHT ? VOLUME_STEP : -VOLUME_STEP;
+                player.setVolume(player.volume() + step);
+                optionsAdapter.notifyDataSetChanged();
+                return true;
+            }
         }
-        if (guideVisible()) {
-            return super.onKeyDown(keyCode, event); // ListView handles Up/Down/OK
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_MUTE:
+                player.setMuted(!player.muted());
+                showVolumeToast();
+                return true;
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+            case KeyEvent.KEYCODE_MEDIA_PLAY:
+            case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                player.togglePause();
+                if (player.isPaused()) {
+                    status.setText(R.string.paused);
+                    status.setVisibility(View.VISIBLE);
+                } else {
+                    status.setVisibility(View.GONE);
+                }
+                return true;
+            default:
+                break;
+        }
+        if (guideVisible() || optionsVisible()) {
+            if (keyCode == KeyEvent.KEYCODE_MENU) {
+                if (optionsVisible()) {
+                    hideOptions();
+                } else {
+                    showOptions();
+                }
+                return true;
+            }
+            return super.onKeyDown(keyCode, event); // the lists handle Up/Down/OK
         }
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_UP:
-            case KeyEvent.KEYCODE_CHANNEL_DOWN:
-                zap(-1);
-                return true;
-            case KeyEvent.KEYCODE_DPAD_DOWN:
             case KeyEvent.KEYCODE_CHANNEL_UP:
                 zap(1);
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_CHANNEL_DOWN:
+                zap(-1);
                 return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
@@ -398,12 +498,8 @@ public class MainActivity extends Activity {
                 showGuide();
                 return true;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                showBanner();
-                return true;
-            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-            case KeyEvent.KEYCODE_MEDIA_PLAY:
-                failures = 0;
-                play(current); // reload and jump back to the live edge
+            case KeyEvent.KEYCODE_MENU:
+                showOptions();
                 return true;
             default:
                 return super.onKeyDown(keyCode, event);
@@ -426,6 +522,85 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ---- Player panel rows ----------------------------------------------------------
+
+    private static final class OptionRow {
+        static final int HEADING = 0;
+        static final int QUALITY = 1;
+        static final int VOLUME = 2;
+        static final int MUTE = 3;
+
+        final int kind;
+        final String text;
+        final int height;
+
+        OptionRow(int kind, String text, int height) {
+            this.kind = kind;
+            this.text = text;
+            this.height = height;
+        }
+    }
+
+    private void buildOptions() {
+        options.clear();
+        options.add(new OptionRow(OptionRow.HEADING, getString(R.string.quality), 0));
+        options.add(new OptionRow(OptionRow.QUALITY, getString(R.string.quality_auto), LivePlayer.AUTO));
+        List<Integer> heights = player.availableQualities();
+        // Keep the chosen quality listed even on a channel that lacks it.
+        if (player.quality() != LivePlayer.AUTO && !heights.contains(player.quality())) {
+            heights.add(player.quality());
+            heights.sort((a, b) -> b - a);
+        }
+        for (int h : heights) {
+            options.add(new OptionRow(OptionRow.QUALITY, getString(R.string.quality_value, h), h));
+        }
+        options.add(new OptionRow(OptionRow.HEADING, getString(R.string.sound), 0));
+        options.add(new OptionRow(OptionRow.VOLUME, getString(R.string.volume), 0));
+        options.add(new OptionRow(OptionRow.MUTE, getString(R.string.mute), 0));
+        optionsAdapter.notifyDataSetChanged();
+    }
+
+    private void onOptionClicked(OptionRow row) {
+        if (row.kind == OptionRow.QUALITY) {
+            player.setQuality(row.height);
+        } else if (row.kind == OptionRow.MUTE) {
+            player.setMuted(!player.muted());
+        }
+        optionsAdapter.notifyDataSetChanged();
+    }
+
+    private String optionSub(OptionRow row) {
+        switch (row.kind) {
+            case OptionRow.QUALITY:
+                if (row.height == LivePlayer.AUTO) {
+                    int h = player.playingHeight();
+                    return h > 0 && player.quality() == LivePlayer.AUTO
+                            ? getString(R.string.quality_auto_now, h) : getString(R.string.quality_auto_sub);
+                }
+                return player.availableQualities().contains(row.height) ? ""
+                        : getString(R.string.quality_not_offered);
+            default:
+                return "";
+        }
+    }
+
+    private String optionValue(OptionRow row) {
+        switch (row.kind) {
+            case OptionRow.QUALITY:
+                return row.height == player.quality() ? getString(R.string.selected) : "";
+            case OptionRow.VOLUME:
+                // The arrows show that Left and Right change it.
+                return player.muted() ? getString(R.string.muted)
+                        : getString(R.string.volume_slider, player.volume());
+            case OptionRow.MUTE:
+                return getString(player.muted() ? R.string.on : R.string.off);
+            default:
+                return "";
+        }
+    }
+
+    // ---- Adapters -------------------------------------------------------------------
+
     private final class GuideAdapter extends BaseAdapter {
         @Override
         public int getCount() {
@@ -443,50 +618,15 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public int getViewTypeCount() {
-            return 2;
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return isHeading(rows.get(position)) ? 0 : 1;
-        }
-
-        @Override
-        public boolean areAllItemsEnabled() {
-            return false;
-        }
-
-        @Override
-        public boolean isEnabled(int position) {
-            return !isHeading(rows.get(position)); // headings are skipped by the D-pad
-        }
-
-        @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             int row = rows.get(position);
-            LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-            if (isHeading(row)) {
-                TextView v = convertView != null ? (TextView) convertView
-                        : (TextView) inflater.inflate(R.layout.item_group, parent, false);
-                String g = groups.get(-row - 1);
-                String ta = GROUP_TAMIL.get(g);
-                v.setText(ta == null ? g : g + "  ·  " + ta);
-                return v;
-            }
             View v = convertView != null ? convertView
-                    : inflater.inflate(R.layout.item_channel, parent, false);
+                    : LayoutInflater.from(parent.getContext()).inflate(R.layout.item_channel, parent, false);
             TextView num = v.findViewById(R.id.num);
             TextView name = v.findViewById(R.id.name);
             TextView sub = v.findViewById(R.id.tamil);
             TextView tag = v.findViewById(R.id.watching);
-            if (row == ROW_SETTINGS) {
-                num.setText("");
-                name.setText(R.string.settings);
-                sub.setText(R.string.settings_sub);
-                sub.setVisibility(View.VISIBLE);
-                tag.setVisibility(View.GONE);
-            } else if (row == ROW_UPDATE) {
+            if (row == ROW_UPDATE) {
                 num.setText("");
                 name.setText(getString(R.string.update_row, update.version));
                 sub.setText(R.string.update_row_sub);
@@ -502,6 +642,68 @@ public class MainActivity extends Activity {
                 tag.setText(R.string.watching);
                 tag.setVisibility(row == current ? View.VISIBLE : View.GONE);
             }
+            return v;
+        }
+    }
+
+    private final class OptionsAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            return options.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return options.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public int getViewTypeCount() {
+            return 2;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return options.get(position).kind == OptionRow.HEADING ? 0 : 1;
+        }
+
+        @Override
+        public boolean areAllItemsEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            return options.get(position).kind != OptionRow.HEADING;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            OptionRow row = options.get(position);
+            LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+            if (row.kind == OptionRow.HEADING) {
+                TextView v = convertView != null ? (TextView) convertView
+                        : (TextView) inflater.inflate(R.layout.item_group, parent, false);
+                v.setText(row.text);
+                return v;
+            }
+            View v = convertView != null ? convertView
+                    : inflater.inflate(R.layout.item_setting, parent, false);
+            ((TextView) v.findViewById(R.id.title)).setText(row.text);
+            TextView sub = v.findViewById(R.id.sub);
+            String s = optionSub(row);
+            sub.setText(s);
+            sub.setVisibility(s.isEmpty() ? View.GONE : View.VISIBLE);
+            TextView value = v.findViewById(R.id.value);
+            String val = optionValue(row);
+            value.setText(val);
+            value.setEnabled(true);
+            value.setVisibility(val.isEmpty() ? View.GONE : View.VISIBLE);
             return v;
         }
     }

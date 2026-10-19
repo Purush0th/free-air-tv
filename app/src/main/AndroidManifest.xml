@@ -3,6 +3,8 @@
     package="com.purush.freeairtv">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- ExoPlayer reads the network type to estimate bandwidth for Auto quality. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Self-update from GitHub Releases; the user confirms each install. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
@@ -11,7 +13,7 @@
 
     <application
         android:allowBackup="false"
-        android:banner="@drawable/banner"
+        android:banner="@drawable/tv_banner"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.Fullscreen">
@@ -38,5 +40,6 @@
         <receiver
             android:name=".InstallResultReceiver"
             android:exported="false" />
+
     </application>
 </manifest>

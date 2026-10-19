@@ -5,14 +5,15 @@
     android:background="@color/ground"
     android:keepScreenOn="true">
 
-    <VideoView
-        android:id="@+id/video"
+    <!-- The picture, sized to the stream's aspect ratio in code. -->
+    <SurfaceView
+        android:id="@+id/surface"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
         android:focusable="false" />
 
-    <!-- Connecting / retrying message, centred on the picture area. -->
+    <!-- Connecting / retrying message. -->
     <TextView
         android:id="@+id/status"
         android:layout_width="wrap_content"
@@ -26,8 +27,7 @@
         android:textSize="20sp"
         android:visibility="gone" />
 
-    <!-- Now-watching panel, shown for a few seconds after a channel change. Top-left,
-         because Tamil news channels run their headline tickers along the bottom. -->
+    <!-- Now-watching card after a channel change. Top-left: Tamil news runs tickers along the bottom. -->
     <LinearLayout
         android:id="@+id/banner"
         android:layout_width="wrap_content"
@@ -86,9 +86,9 @@
             <TextClock
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFeatureSettings="tnum"
                 android:format12Hour="h:mm a"
                 android:format24Hour="HH:mm"
-                android:fontFeatureSettings="tnum"
                 android:textColor="@color/muted"
                 android:textSize="18sp" />
 
@@ -105,9 +105,11 @@
                     android:background="@drawable/live_dot" />
 
                 <TextView
+                    android:id="@+id/banner_quality"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
+                    android:fontFeatureSettings="tnum"
                     android:text="@string/live"
                     android:textColor="@color/accent"
                     android:textSize="16sp" />
@@ -115,15 +117,30 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- The guide: an opaque panel on the left; the picture keeps playing beside it. -->
+    <!-- Volume feedback, top right. -->
+    <TextView
+        android:id="@+id/volume_toast"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="40dp"
+        android:background="@drawable/panel"
+        android:fontFeatureSettings="tnum"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp"
+        android:textColor="@color/ink"
+        android:textSize="20sp"
+        android:visibility="gone" />
+
+    <!-- Side nav: the channel list. -->
     <LinearLayout
         android:id="@+id/guide"
-        android:layout_width="420dp"
+        android:layout_width="340dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@color/surface"
         android:orientation="vertical"
-        android:paddingHorizontal="24dp"
+        android:paddingHorizontal="20dp"
         android:paddingTop="28dp"
         android:paddingBottom="20dp">
 
@@ -132,11 +149,11 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="12dp">
+            android:paddingStart="8dp">
 
             <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@null"
                 android:src="@drawable/logo_mark" />
 
@@ -146,25 +163,68 @@
                 android:layout_marginStart="12dp"
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
                 android:text="@string/app_name"
                 android:textColor="@color/ink"
-                android:textSize="26sp" />
+                android:textSize="22sp" />
 
-            <TextClock
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:format12Hour="h:mm a"
-                android:format24Hour="HH:mm"
-                android:fontFeatureSettings="tnum"
-                android:textColor="@color/muted"
-                android:textSize="18sp" />
+            <!-- Settings: icon-only, so it carries a spoken label and a strong focus state. -->
+            <ImageButton
+                android:id="@+id/settings_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/icon_button"
+                android:contentDescription="@string/settings"
+                android:focusable="true"
+                android:nextFocusDown="@id/list"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_settings"
+                android:tint="@color/icon_on_button" />
         </LinearLayout>
 
         <ListView
             android:id="@+id/list"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1"
+            android:choiceMode="singleChoice"
+            android:divider="@null"
+            android:dividerHeight="2dp"
+            android:drawSelectorOnTop="false"
+            android:listSelector="@drawable/list_selector"
+            android:nextFocusUp="@id/settings_button"
+            android:scrollbars="none" />
+    </LinearLayout>
+
+    <!-- Player panel: quality, volume, mute. Opens with Right. -->
+    <LinearLayout
+        android:id="@+id/options"
+        android:layout_width="340dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:background="@color/surface"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="36dp"
+        android:paddingBottom="20dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="8dp"
+            android:text="@string/options_title"
+            android:textColor="@color/ink"
+            android:textSize="22sp" />
+
+        <ListView
+            android:id="@+id/options_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
             android:layout_weight="1"
             android:choiceMode="singleChoice"
             android:divider="@null"
@@ -172,14 +232,5 @@
             android:drawSelectorOnTop="false"
             android:listSelector="@drawable/list_selector"
             android:scrollbars="none" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:paddingHorizontal="12dp"
-            android:text="@string/guide_hint"
-            android:textColor="@color/faint"
-            android:textSize="15sp" />
     </LinearLayout>
 </FrameLayout>

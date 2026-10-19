@@ -5,6 +5,7 @@
 #   VERSION=1.2.0 KEYSTORE_FILE=release.keystore KEYSTORE_PASSWORD=... ./build.sh
 #
 # Output: build/FreeAirTV-$VERSION.apk and build/FreeAirTV-$VERSION.apk.sha256
+# Libraries are listed with their checksums in deps.lock, downloaded into .deps/ and verified.
 set -euo pipefail
 
 VERSION="${VERSION:-0.0.0-dev}"
@@ -14,6 +15,7 @@ PLATFORM="$SDK/platforms/android-35/android.jar"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SRC="$ROOT/app/src/main"
 OUT="$ROOT/build"
+DEPS="$ROOT/.deps"
 MIN_SDK=22
 TARGET_SDK=35
 KEY_ALIAS="${KEY_ALIAS:-freeairtv}"
@@ -29,8 +31,38 @@ VERSION_CODE=$(( ${MAJ:-0} * 10000 + ${MIN:-0} * 100 + ${PAT:-0} ))
 REPO="${GITHUB_REPOSITORY:-${FREEAIRTV_REPO:-OWNER/free-air-tv}}"
 
 rm -rf "$OUT"
-mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex" "$OUT/gen-res/raw" "$OUT/gen-res/values"
+mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex" "$OUT/libres" "$OUT/gen-res/raw" "$OUT/gen-res/values" "$DEPS"
 echo "FreeAir TV $VERSION (code $VERSION_CODE), updates from github.com/$REPO"
+
+echo "0/6 Libraries"
+JARS=()
+LIB_RES=()
+LIB_PKGS=()
+while read -r url sha; do
+  case "$url" in ''|'#'*) continue;; esac
+  file="$DEPS/$(basename "$url")"
+  if [ ! -f "$file" ] || [ "$(sha256sum "$file" | cut -d' ' -f1)" != "$sha" ]; then
+    curl -sSfL --retry 3 -o "$file" "$url"
+  fi
+  if [ "$(sha256sum "$file" | cut -d' ' -f1)" != "$sha" ]; then
+    rm -f "$file"; echo "Checksum mismatch for $url" >&2; exit 1
+  fi
+  case "$file" in
+    *.jar) JARS+=("$file"); continue;;
+  esac
+  # An .aar: its code is classes.jar; its resources are compiled and linked under its own package.
+  dir="${file%.aar}"
+  [ -d "$dir" ] || unzip -q -o "$file" -d "$dir"
+  [ -f "$dir/classes.jar" ] && JARS+=("$dir/classes.jar")
+  for j in "$dir"/libs/*.jar; do [ -f "$j" ] && JARS+=("$j"); done
+  pkg=$(grep -o 'package="[^"]*"' "$dir/AndroidManifest.xml" | head -1 | cut -d'"' -f2)
+  if [ -d "$dir/res" ] && [ -n "$(find "$dir/res" -type f | head -1)" ]; then
+    zipf="$OUT/libres/$(basename "$dir").zip"
+    "$BT/aapt2" compile --dir "$dir/res" -o "$zipf"
+    LIB_RES+=("$zipf")
+    LIB_PKGS+=("$pkg")
+  fi
+done < "$ROOT/deps.lock"
 
 echo "1/6 Compiling resources"
 cp "$ROOT/channels.json" "$OUT/gen-res/raw/channels.json"
@@ -45,21 +77,27 @@ EOF
 "$BT/aapt2" compile --dir "$OUT/gen-res" -o "$OUT/gen-res.zip"
 
 echo "2/6 Linking manifest and resources"
-"$BT/aapt2" link -I "$PLATFORM" --manifest "$SRC/AndroidManifest.xml" \
-  --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK" \
-  --version-code "$VERSION_CODE" --version-name "$VERSION" \
-  --java "$OUT/gen" -o "$OUT/unaligned.apk" "$OUT/res.zip" "$OUT/gen-res.zip"
+LINK=(link -I "$PLATFORM" --manifest "$SRC/AndroidManifest.xml"
+  --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK"
+  --version-code "$VERSION_CODE" --version-name "$VERSION"
+  --auto-add-overlay --java "$OUT/gen" -o "$OUT/unaligned.apk")
+if [ ${#LIB_PKGS[@]} -gt 0 ]; then LINK+=(--extra-packages "$(IFS=:; echo "${LIB_PKGS[*]}")"); fi
+# Library resources first, so the app's own resources override them.
+for z in "${LIB_RES[@]}"; do LINK+=(-R "$z"); done
+LINK+=("$OUT/res.zip" "$OUT/gen-res.zip")
+"$BT/aapt2" "${LINK[@]}"
 
 echo "3/6 Compiling Java"
 find "$SRC/java" "$OUT/gen" -name '*.java' > "$OUT/sources.txt"
-javac -source 8 -target 8 -Xlint:-options -encoding UTF-8 \
-  -bootclasspath "$PLATFORM" -classpath "$BT/core-lambda-stubs.jar" \
+CP="$BT/core-lambda-stubs.jar$(printf ':%s' "${JARS[@]}")"
+javac -source 8 -target 8 -Xlint:-options -nowarn -encoding UTF-8 \
+  -bootclasspath "$PLATFORM" -classpath "$CP" \
   -d "$OUT/classes" @"$OUT/sources.txt"
 
 echo "4/6 Converting to DEX"
-find "$OUT/classes" -name '*.class' > "$OUT/classes.txt"
-"$BT/d8" --release --min-api "$MIN_SDK" --lib "$PLATFORM" --output "$OUT/dex" @"$OUT/classes.txt"
-(cd "$OUT/dex" && zip -q -u "$OUT/unaligned.apk" classes.dex)
+{ find "$OUT/classes" -name '*.class'; printf '%s\n' "${JARS[@]}"; } > "$OUT/d8-inputs.txt"
+"$BT/d8" --release --min-api "$MIN_SDK" --lib "$PLATFORM" --output "$OUT/dex" @"$OUT/d8-inputs.txt"
+(cd "$OUT/dex" && zip -q -u "$OUT/unaligned.apk" classes*.dex)
 
 echo "5/6 Aligning"
 "$BT/zipalign" -p -f 4 "$OUT/unaligned.apk" "$OUT/aligned.apk"

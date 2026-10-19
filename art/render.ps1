@@ -31,8 +31,8 @@ function Shot($page, $w, $h, $scale, $out) {
 # Fire TV banner: 1280x720 in drawable-xxxhdpi, which Android treats as the standard
 # 320x180dp banner and scales down on the Stick. In a lower-density folder the same bitmap
 # would claim to be larger than a banner, and Projectivy crops the overflow.
-Remove-Item "$res\drawable-xhdpi\banner.png", "$res\drawable-xxhdpi\banner.png" -ErrorAction SilentlyContinue
-Shot 'banner.html' 1280 720 1 "$res\drawable-xxxhdpi\banner.png"
+Remove-Item "$res\drawable-xhdpi\banner.png", "$res\drawable-xxhdpi\banner.png", "$res\drawable-xxxhdpi\banner.png" -ErrorAction SilentlyContinue
+Shot 'banner.html' 1280 720 1 "$res\drawable-xxxhdpi\tv_banner.png"
 
 # Launcher icon (48dp): one 192px copy in mipmap-xxxhdpi; Android scales it down on the Stick.
 Remove-Item "$res\mipmap-xhdpi\ic_launcher.png", "$res\mipmap-xxhdpi\ic_launcher.png" -ErrorAction SilentlyContinue

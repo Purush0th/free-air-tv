@@ -4,6 +4,9 @@
 #
 # Output: build\FreeAirTV-<version>.apk and build\FreeAirTV-<version>.apk.sha256
 #
+# Libraries (Media3 ExoPlayer and its dependencies) are listed with their checksums in
+# deps.lock, downloaded into .deps\ and verified before use.
+#
 # Signing key: never stored in this repository. By default it lives in
 #   %USERPROFILE%\.freeairtv\release.keystore  (password in keystore-password.txt beside it)
 # and is created on the first build. Override with FREEAIRTV_KEYSTORE / FREEAIRTV_KEYSTORE_PASS.
@@ -19,6 +22,7 @@ $platform = Join-Path $sdk 'platforms\android-35\android.jar'
 $root     = $PSScriptRoot
 $src      = Join-Path $root 'app\src\main'
 $out      = Join-Path $root 'build'
+$deps     = Join-Path $root '.deps'
 $minSdk = 22; $targetSdk = 35
 
 # versionCode from the version: 1.2.3 -> 10203.
@@ -50,11 +54,43 @@ function WriteUtf8($path, $text) {
     New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
     [IO.File]::WriteAllText($path, $text, (New-Object Text.UTF8Encoding $false))
 }
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
-New-Item -ItemType Directory -Force "$out\gen", "$out\classes", "$out\dex" | Out-Null
+New-Item -ItemType Directory -Force "$out\gen", "$out\classes", "$out\dex", "$out\libres", $deps | Out-Null
 
 Write-Host "FreeAir TV $Version (code $versionCode), updates from github.com/$repo"
+
+Write-Host '0/6 Libraries'
+$jars = New-Object System.Collections.Generic.List[string]
+$libResZips = New-Object System.Collections.Generic.List[string]
+$libPackages = New-Object System.Collections.Generic.List[string]
+foreach ($line in Get-Content (Join-Path $root 'deps.lock')) {
+    if ($line -match '^\s*(#|$)') { continue }
+    $url, $sha = $line.Trim() -split '\s+'
+    $file = Join-Path $deps ([IO.Path]::GetFileName($url))
+    if (-not (Test-Path $file) -or (Get-FileHash $file -Algorithm SHA256).Hash.ToLower() -ne $sha) {
+        Invoke-WebRequest -Uri $url -OutFile $file -UseBasicParsing
+    }
+    if ((Get-FileHash $file -Algorithm SHA256).Hash.ToLower() -ne $sha) {
+        Remove-Item $file
+        throw "Checksum mismatch for $url"
+    }
+    if ($file.EndsWith('.jar')) { $jars.Add($file); continue }
+    # An .aar: its code is classes.jar; its resources are compiled and linked under its own package.
+    $dir = Join-Path $deps ([IO.Path]::GetFileNameWithoutExtension($file))
+    if (-not (Test-Path $dir)) { [IO.Compression.ZipFile]::ExtractToDirectory($file, $dir) }
+    if (Test-Path "$dir\classes.jar") { $jars.Add("$dir\classes.jar") }
+    Get-ChildItem "$dir\libs" -Filter *.jar -ErrorAction SilentlyContinue | ForEach-Object { $jars.Add($_.FullName) }
+    $manifest = [IO.File]::ReadAllText("$dir\AndroidManifest.xml")
+    if ($manifest -match 'package="([^"]+)"') { $pkg = $Matches[1] } else { throw "No package in $file" }
+    if ((Test-Path "$dir\res") -and (Get-ChildItem "$dir\res" -Recurse -File)) {
+        $zip = Join-Path "$out\libres" ([IO.Path]::GetFileNameWithoutExtension($file) + '.zip')
+        Run "$bt\aapt2.exe" @('compile', '--dir', "$dir\res", '-o', $zip)
+        $libResZips.Add($zip)
+        $libPackages.Add($pkg)
+    }
+}
 
 Write-Host '1/6 Compiling resources'
 # Generated resources: the repo's channel list and the repository name.
@@ -70,25 +106,33 @@ Run "$bt\aapt2.exe" @('compile', '--dir', "$src\res", '-o', "$out\res.zip")
 Run "$bt\aapt2.exe" @('compile', '--dir', "$out\gen-res", '-o', "$out\gen-res.zip")
 
 Write-Host '2/6 Linking manifest and resources'
-Run "$bt\aapt2.exe" @('link', '-I', $platform,
+$link = @('link', '-I', $platform,
     '--manifest', "$src\AndroidManifest.xml",
     '--min-sdk-version', "$minSdk", '--target-sdk-version', "$targetSdk",
     '--version-code', "$versionCode", '--version-name', $Version,
-    '--java', "$out\gen", '-o', "$out\unaligned.apk", "$out\res.zip", "$out\gen-res.zip")
+    '--auto-add-overlay', '--java', "$out\gen", '-o', "$out\unaligned.apk")
+if ($libPackages.Count) { $link += @('--extra-packages', ($libPackages -join ':')) }
+# Library resources first, so the app's own resources override them.
+foreach ($z in $libResZips) { $link += @('-R', $z) }
+$link += @("$out\res.zip", "$out\gen-res.zip")
+Run "$bt\aapt2.exe" $link
 
 Write-Host '3/6 Compiling Java'
 $javaFiles = @(Get-ChildItem "$src\java", "$out\gen" -Recurse -Filter *.java | ForEach-Object FullName)
-Run 'javac' (@('-source', '8', '-target', '8', '-Xlint:-options', '-encoding', 'UTF-8',
-    '-bootclasspath', $platform, '-classpath', "$bt\core-lambda-stubs.jar",
+$classpath = (@("$bt\core-lambda-stubs.jar") + $jars) -join ';'
+Run 'javac' (@('-source', '8', '-target', '8', '-Xlint:-options', '-nowarn', '-encoding', 'UTF-8',
+    '-bootclasspath', $platform, '-classpath', $classpath,
     '-d', "$out\classes") + $javaFiles)
 
 Write-Host '4/6 Converting to DEX'
 $classFiles = @(Get-ChildItem "$out\classes" -Recurse -Filter *.class | ForEach-Object FullName)
-Run "$bt\d8.bat" (@('--release', '--min-api', "$minSdk", '--lib', $platform, '--output', "$out\dex") + $classFiles)
+WriteUtf8 "$out\d8-inputs.txt" (($classFiles + $jars) -join "`n")
+Run "$bt\d8.bat" @('--release', '--min-api', "$minSdk", '--lib', $platform, '--output', "$out\dex", "@$out\d8-inputs.txt")
 
-Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 $zip = [IO.Compression.ZipFile]::Open("$out\unaligned.apk", 'Update')
-[void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, "$out\dex\classes.dex", 'classes.dex')
+foreach ($dex in Get-ChildItem "$out\dex" -Filter 'classes*.dex') {
+    [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $dex.FullName, $dex.Name)
+}
 $zip.Dispose()
 
 Write-Host '5/6 Aligning'

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon tint: grey at rest, dark on the white focused disc. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="@color/ink_on_selected" />
+    <item android:color="@color/muted" />
+</selector>

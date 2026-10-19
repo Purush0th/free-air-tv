@@ -4,14 +4,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;800&display=block" rel="stylesheet">
 <style>
-  /* Drawn at 1280x720 (16:9) so launchers that show large tiles stay sharp.
-     The mark and the name sit in a centred safe area (about 65% x 55%): launchers such
-     as Projectivy zoom the focused tile and crop its edges. */
+  /* 1280x720 (16:9), rendered into drawable-xxxhdpi (= the standard 320x180dp banner).
+     Wordmark-led, like the Tailscale and Plex banners: a dark ground, the name large, the
+     icon small. Everything sits in a centred safe area because launchers such as
+     Projectivy zoom the focused tile and crop its edges. */
   html,body{margin:0;width:1280px;height:720px;overflow:hidden}
-  body{background:linear-gradient(135deg,#00D2A8 0%,#0EA5E9 50%,#2563EB 100%);font-family:"Plus Jakarta Sans",sans-serif;color:#fff}
-  .b{height:720px;display:flex;align-items:center;justify-content:center;gap:20px;padding:0 200px;box-sizing:border-box}
-  img{width:400px;height:400px;flex:none}
-  .name{white-space:nowrap;font-weight:800;font-size:80px;letter-spacing:-0.035em;line-height:1}
+  body{background:#1C1C1C;font-family:"Plus Jakarta Sans",sans-serif;color:#fff}
+  .b{height:720px;display:flex;align-items:center;justify-content:center;gap:36px}
+  img{width:150px;height:150px;flex:none}
+  .name{white-space:nowrap;font-weight:800;font-size:132px;letter-spacing:-0.04em;line-height:1}
   .name span{font-weight:500}
 </style></head>
-<body><div class="b"><img src="freeair-mark.svg" alt=""><div class="name">FreeAir <span>TV</span></div></div></body></html>
+<body><div class="b"><img src="freeair-icon.svg" alt=""><div class="name">FreeAir <span>TV</span></div></div></body></html>
