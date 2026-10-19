@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- FreeAir TV app icon: a satellite sends three waves down to a dish, on the Aurora gradient. -->
+  <defs>
+    <linearGradient id="aurora" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00D2A8"/>
+      <stop offset="0.5" stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#aurora)"/>
+
+  <!-- signal: three waves from the satellite toward the dish -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round">
+    <path d="M148.6 64.8 A24 24 0 0 1 133.7 51.0" opacity="1"/>
+    <path d="M145.5 74.3 A34 34 0 0 1 124.5 54.7" opacity="0.85"/>
+    <path d="M142.4 83.8 A44 44 0 0 1 115.2 58.5" opacity="0.7"/>
+  </g>
+
+  <!-- satellite, panels across the wave direction -->
+  <g transform="translate(156 42) rotate(43) scale(0.85)">
+    <rect x="-40" y="-8" width="27" height="16" rx="2" fill="#F2A93B"/>
+    <rect x="13" y="-8" width="27" height="16" rx="2" fill="#F2A93B"/>
+    <path d="M-13 0 H13" stroke="#FFFFFF" stroke-width="3"/>
+    <rect x="-7" y="-12" width="14" height="24" rx="3" fill="#FFFFFF"/>
+  </g>
+
+  <!-- mount -->
+  <rect x="58" y="138" width="14" height="34" rx="3" fill="#0F2A47"/>
+  <rect x="42" y="168" width="46" height="10" rx="5" fill="#0F2A47"/>
+
+  <!-- dish, tilted up toward the satellite -->
+  <g transform="translate(86 118) rotate(40)">
+    <path d="M-62 0 A62 44 0 0 0 62 0 Z" fill="#0F2A47"/>
+    <ellipse cx="0" cy="0" rx="62" ry="26" fill="#FFFFFF"/>
+    <ellipse cx="0" cy="2" rx="53" ry="19" fill="#DCEAF8"/>
+    <path d="M-40 -9 L0 -44 M40 -9 L0 -44" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="0" cy="-47" r="5.5" fill="#F2A93B"/>
+  </g>
+</svg>

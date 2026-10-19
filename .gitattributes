@@ -1,0 +1,5 @@
+* text=auto
+# Shell scripts run on Linux (GitHub Actions) and break with Windows line endings.
+*.sh text eol=lf
+*.yml text eol=lf
+*.png binary

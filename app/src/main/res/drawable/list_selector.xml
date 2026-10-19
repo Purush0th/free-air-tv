@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The focused row inverts to white; colour is kept for "now watching". -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/ink" />
+    <corners android:radius="8dp" />
+</shape>

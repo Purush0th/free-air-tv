@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- One ground, one ink, two greys, one accent (turmeric, from the lamp in the logo). -->
+    <color name="ground">#FF000000</color>
+    <color name="surface">#FF111111</color>
+    <color name="ink">#FFFFFFFF</color>
+    <color name="muted">#FFB4B4B4</color>
+    <color name="faint">#FF949494</color>
+    <color name="accent">#FFF2A93B</color>
+    <!-- On the selected (white) row. -->
+    <color name="ink_on_selected">#FF111111</color>
+    <color name="muted_on_selected">#FF3D3D3D</color>
+    <color name="faint_on_selected">#FF555555</color>
+    <color name="accent_on_selected">#FF8A5200</color>
+</resources>

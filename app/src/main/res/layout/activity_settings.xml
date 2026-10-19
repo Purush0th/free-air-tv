@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface"
+    android:orientation="vertical"
+    android:paddingHorizontal="64dp"
+    android:paddingTop="36dp"
+    android:paddingBottom="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@null"
+            android:src="@drawable/logo_mark" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/settings"
+            android:textColor="@color/ink"
+            android:textSize="26sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_hint"
+            android:textColor="@color/faint"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- One column, at a readable width; the rest of the screen stays calm. -->
+    <ListView
+        android:id="@+id/list"
+        android:layout_width="640dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1"
+        android:choiceMode="singleChoice"
+        android:divider="@null"
+        android:dividerHeight="2dp"
+        android:drawSelectorOnTop="false"
+        android:listSelector="@drawable/list_selector"
+        android:scrollbars="none" />
+</LinearLayout>

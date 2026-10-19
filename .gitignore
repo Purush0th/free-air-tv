@@ -1,0 +1,18 @@
+# Build output
+build/
+
+# Signing keys and their passwords never belong in the repository.
+*.keystore
+*.jks
+keystore-password.txt
+signing/
+
+# Local copies pulled from a device
+channels.current.json
+
+# Editor and OS clutter
+.idea/
+.vscode/
+*.iml
+Thumbs.db
+.DS_Store

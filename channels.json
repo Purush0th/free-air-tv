@@ -1,0 +1,21 @@
+[
+  {"id": "svbc2",          "name": "SVBC 2",                 "tamil": "ஸ்ரீ வெங்கடேஸ்வரா பக்தி",   "group": "Devotional", "url": "https://player.mslivestream.net/tamil/ac206e74d75b285755ee4924df87d951.sdp/playlist.m3u8"},
+  {"id": "sri-sankara",    "name": "Sri Sankara TV",         "tamil": "ஸ்ரீ சங்கரா டிவி",          "group": "Devotional", "url": "https://mumt05.tangotv.in/87NeALx2SRISANKARA/index.m3u8"},
+  {"id": "aastha-tamil",   "name": "Aastha Tamil",           "tamil": "ஆஸ்தா தமிழ்",              "group": "Devotional", "url": "https://aasthaott.akamaized.net/110923/smil:aasthatamil.smil/playlist.m3u8"},
+
+  {"id": "dd-tamil",       "name": "DD Tamil",               "tamil": "டிடி தமிழ் (பொதிகை)",       "group": "General",    "url": "https://cdn.pishow.tv/ott/live/1737/master.m3u8"},
+  {"id": "raj-tv",         "name": "Raj TV",                 "tamil": "ராஜ் டிவி",                 "group": "General",    "url": "https://livestream.rajtv.tv/hlslive/Admin/px08241087/live/RAJTV/master_1.m3u8"},
+  {"id": "raj-digital",    "name": "Raj Digital Plus",       "tamil": "ராஜ் டிஜிட்டல் பிளஸ்",       "group": "General",    "url": "https://livestream.rajtv.tv/hlslive/Admin/px08241087/live/RajTV_Digital_plus/master_1.m3u8"},
+  {"id": "polimer-tv",     "name": "Polimer TV",             "tamil": "பாலிமர் டிவி",              "group": "General",    "url": "https://cdn.pishow.tv/ott/live/1241/master.m3u8"},
+  {"id": "makkal-tv",      "name": "Makkal TV",              "tamil": "மக்கள் தொலைக்காட்சி",        "group": "General",    "url": "https://5k8q87azdy4v-hls-live.wmncdn.net/MAKKAL/271ddf829afeece44d8732757fba1a66.sdp/playlist.m3u8"},
+  {"id": "vasanth-tv",     "name": "Vasanth TV",             "tamil": "வசந்த் டிவி",               "group": "General",    "url": "https://mumt04.tangotv.in/m18aqlK4VASANTHTV/index.m3u8"},
+
+  {"id": "news18-tn",      "name": "News18 Tamil Nadu",      "tamil": "நியூஸ்18 தமிழ்நாடு",         "group": "News",       "url": "https://n18syndication.akamaized.net/bpk-tv/News18_Tamil_Nadu_NW18_MOB/output01/master.m3u8"},
+  {"id": "puthiya-thalaimurai", "name": "Puthiya Thalaimurai", "tamil": "புதிய தலைமுறை",           "group": "News",       "url": "https://mumt07.tangotv.in/zHjX9OFlPUTHIYAEXPRESS/index.m3u8"},
+  {"id": "thanthi-tv",     "name": "Thanthi TV",             "tamil": "தந்தி டிவி",                "group": "News",       "url": "https://streams.tangotv.in/THANTHITV/ORIGIN/index.m3u8"},
+  {"id": "sathiyam-tv",    "name": "Sathiyam TV",            "tamil": "சத்தியம் டிவி",              "group": "News",       "url": "https://mumt07.tangotv.in/zHjX9OFlSATHIYAMTV/index.m3u8"},
+  {"id": "news7-tamil",    "name": "News7 Tamil",            "tamil": "நியூஸ்7 தமிழ்",              "group": "News",       "url": "https://segment.yuppcdn.net/240122/news7/playlist.m3u8"},
+  {"id": "polimer-news",   "name": "Polimer News",           "tamil": "பாலிமர் செய்திகள்",          "group": "News",       "url": "https://segment.yuppcdn.net/110322/polimernews/playlist.m3u8"},
+  {"id": "news-tamil-24x7","name": "News Tamil 24x7",        "tamil": "நியூஸ் தமிழ் 24x7",          "group": "News",       "url": "https://cdn.pishow.tv/ott/live/1433/master.m3u8"},
+  {"id": "malai-murasu",   "name": "Malai Murasu Seithigal", "tamil": "மாலை முரசு செய்திகள்",       "group": "News",       "url": "https://streams.tangotv.in/MALAIMURASUSEITHIGAL/ORIGIN/index.m3u8"}
+]
