@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>FreeAir TV Roku poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;800&display=block" rel="stylesheet">
+<style>
+  /* Roku channel poster (4:3): 540x405 for FHD and 290x218 for HD, rendered at its exact
+     pixel size; everything is in vw so one layout fits both. The Fire TV banner's look,
+     stacked: icon over the wordmark, on the same dark ground. */
+  html,body{margin:0;width:100vw;height:100vh;overflow:hidden}
+  body{background:#1C1C1C;font-family:"Plus Jakarta Sans",sans-serif;color:#fff;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4.5vw}
+  img{width:30vw;height:30vw}
+  .name{white-space:nowrap;font-weight:800;font-size:13.5vw;letter-spacing:-0.04em;line-height:1}
+  .name span{font-weight:300}
+</style></head>
+<body><img src="../../art/freeair-icon.svg" alt=""><div class="name">FreeAir <span>TV</span></div></body></html>

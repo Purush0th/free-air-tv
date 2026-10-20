@@ -1,0 +1,37 @@
+# Packages and publishes the Roku channel when a Roku version tag is pushed:
+#   git tag roku-v0.1.6 && git push origin roku-v0.1.6
+# The release is not marked "latest": the Fire TV app updates from the latest release and
+# must keep finding its APK there. The Roku channel looks for roku-v* tags itself, and
+# roku/update.ps1 installs the newest one onto a Roku from a PC.
+name: Roku release
+
+on:
+  push:
+    tags: ['roku-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # The Tamil labels are committed (drawn on a PC with the same fonts every time).
+          export VERSION="${TAG#roku-v}" SKIP_LABELS=1
+          chmod +x roku/package.sh
+          roku/package.sh
+          cd build && sha256sum "FreeAirTV-roku-$VERSION.zip" > "FreeAirTV-roku-$VERSION.zip.sha256"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" build/FreeAirTV-roku-*.zip build/FreeAirTV-roku-*.zip.sha256 \
+            --title "FreeAir TV for Roku ${TAG#roku-v}" --latest=false --generate-notes

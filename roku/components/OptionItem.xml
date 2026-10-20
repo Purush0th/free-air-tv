@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One row of the Picture &amp; Sound panel: a title, a grey line under it, and the turmeric
+     dot on the choice in use (or the gear, on the Settings button). Same look as the channel
+     list rows. -->
+<component name="OptionItem" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" onChange="onContent" />
+        <field id="focusPercent" type="float" onChange="onFocus" />
+        <field id="width" type="float" />
+        <field id="height" type="float" />
+    </interface>
+    <script type="text/brightscript" uri="OptionItem.brs" />
+    <children>
+        <Label id="title" translation="[28,14]" width="372" height="38" vertAlign="center" color="0xFFFFFFFF">
+            <Font role="font" uri="font:SystemFontFile" size="28" />
+        </Label>
+        <Label id="sub" translation="[28,52]" width="372" height="32" vertAlign="center" color="0xB4B4B4FF">
+            <Font role="font" uri="font:SystemFontFile" size="22" />
+        </Label>
+        <Poster id="dot" translation="[420,30]" width="36" height="36" uri="pkg:/images/dot.png" visible="false" />
+        <!-- The Settings button's gear. -->
+        <Poster id="icon" translation="[416,24]" width="48" height="48" visible="false" />
+    </children>
+</component>

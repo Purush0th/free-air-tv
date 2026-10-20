@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FreeAir TV: the channel full screen, a now-watching card top-left after each change, and
+     the channel list on the left (OK or Left). Laid out at 1920x1080; Roku scales it for HD.
+     Sizes follow the Fire TV app at 2 px per dp. -->
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="Common.brs" />
+    <script type="text/brightscript" uri="MainScene.brs" />
+    <children>
+        <Rectangle id="ground" width="1920" height="1080" color="0x000000FF" />
+
+        <Video id="video" width="1920" height="1080" enableUI="false" />
+
+        <!-- Holds focus while the picture is full screen, so every key reaches onKeyEvent.
+             Focusing the Scene itself does not take focus back from the list. -->
+        <Group id="keys" focusable="true" />
+
+        <!-- No channels / nothing to play: centred card. -->
+        <Group id="status" visible="false">
+            <Poster id="statusBg" uri="pkg:/images/card.9.png" />
+            <Label id="statusText" color="0xFFFFFFFF" horizAlign="center" vertAlign="center" wrap="true">
+                <Font role="font" uri="font:SystemFontFile" size="32" />
+            </Label>
+        </Group>
+
+        <!-- Connecting (Fire TV loader): the logo's signal waves pulse outward, with the
+             channel's name below. Shown when a channel takes more than 0.7 s to start. -->
+        <Group id="loader" visible="false">
+            <Poster id="loaderBg" uri="pkg:/images/loader.9.png" />
+            <Poster id="wave1" width="72" height="72" uri="pkg:/images/loader_wave1.png" opacity="0.18" />
+            <Poster id="wave2" width="72" height="72" uri="pkg:/images/loader_wave2.png" opacity="0.18" />
+            <Poster id="wave3" width="72" height="72" uri="pkg:/images/loader_wave3.png" opacity="0.18" />
+            <Poster id="loaderDot" width="72" height="72" uri="pkg:/images/loader_dot.png" />
+            <Label id="loaderLabel" height="32" horizAlign="center" vertAlign="center" color="0xB4B4B4FF">
+                <Font role="font" uri="font:SystemFontFile" size="22" />
+            </Label>
+        </Group>
+        <!-- Each wave brightens and fades every 1.26 s, the next 180 ms later (Fire TV
+             animator/loader_wave*.xml), so the signal travels outward. -->
+        <Animation id="loaderAnim" duration="1.26" repeat="true" easeFunction="linear">
+            <FloatFieldInterpolator fieldToInterp="wave1.opacity"
+                key="[0.0, 0.3, 0.75, 1.0]" keyValue="[0.18, 1.0, 0.18, 0.18]" />
+            <FloatFieldInterpolator fieldToInterp="wave2.opacity"
+                key="[0.0, 0.1429, 0.4429, 0.8929, 1.0]" keyValue="[0.18, 0.18, 1.0, 0.18, 0.18]" />
+            <FloatFieldInterpolator fieldToInterp="wave3.opacity"
+                key="[0.0, 0.0357, 0.2857, 0.5857, 1.0]" keyValue="[0.245, 0.18, 0.18, 1.0, 0.245]" />
+        </Animation>
+        <Timer id="loaderDelay" duration="0.7" repeat="false" />
+
+        <!-- Now-watching card: compact and translucent. Top-left, because Tamil news runs
+             tickers along the bottom. -->
+        <Group id="card" translation="[64,64]" visible="false">
+            <Poster id="cardBg" uri="pkg:/images/card.9.png" height="132" />
+            <Label id="cardNum" translation="[32,0]" width="44" height="132" horizAlign="right" vertAlign="center" color="0x9E9E9EFF">
+                <Font role="font" uri="font:SystemFontFile" size="28" />
+            </Label>
+            <Label id="cardName" translation="[100,22]" height="48" vertAlign="center" color="0xFFFFFFFF">
+                <Font role="font" uri="font:BoldSystemFontFile" size="36" />
+            </Label>
+            <Poster id="cardLocale" translation="[100,69]" blendColor="0xB4B4B4FF" />
+            <Group id="cardRight">
+                <Poster id="liveDot" translation="[0,40]" width="16" height="16" uri="pkg:/images/live_dot.png" />
+                <Label id="cardState" translation="[28,26]" height="44" vertAlign="center" color="0xF2A93BFF">
+                    <Font role="font" uri="font:BoldSystemFontFile" size="26" />
+                </Label>
+                <Label id="cardClock" translation="[0,70]" height="40" vertAlign="center" color="0xB4B4B4FF">
+                    <Font role="font" uri="font:SystemFontFile" size="26" />
+                </Label>
+            </Group>
+        </Group>
+
+        <!-- Side nav: the channel list. 272dp wide, 88% opaque so the channel shows through. -->
+        <Group id="guide" visible="false">
+            <Rectangle width="544" height="1080" color="0x111111E0" />
+            <Poster translation="[48,56]" width="72" height="72" uri="pkg:/images/logo_mark.png" />
+            <Label translation="[144,56]" height="72" vertAlign="center" text="FreeAir TV" color="0xFFFFFFFF">
+                <Font role="font" uri="font:BoldSystemFontFile" size="48" />
+            </Label>
+            <MarkupList id="list"
+                translation="[32,160]"
+                itemComponentName="ChannelItem"
+                itemSize="[480,96]"
+                itemSpacing="[0,4]"
+                numRows="8"
+                vertFocusAnimationStyle="floatingFocus"
+                drawFocusFeedback="true"
+                drawFocusFeedbackOnTop="false"
+                focusBitmapUri="pkg:/images/pill.9.png"
+                focusFootprintBitmapUri="" />
+        </Group>
+
+        <!-- Picture &amp; Sound: quality and mute, on the right. Opens with Right. -->
+        <Group id="options" visible="false">
+            <Rectangle translation="[1376,0]" width="544" height="1080" color="0x111111E0" />
+            <Label translation="[1424,56]" height="72" vertAlign="center" text="Picture &amp; Sound" color="0xFFFFFFFF">
+                <Font role="font" uri="font:BoldSystemFontFile" size="44" />
+            </Label>
+            <MarkupList id="optList"
+                translation="[1408,160]"
+                itemComponentName="OptionItem"
+                itemSize="[480,96]"
+                itemSpacing="[0,4]"
+                numRows="8"
+                vertFocusAnimationStyle="floatingFocus"
+                drawFocusFeedback="true"
+                drawFocusFeedbackOnTop="false"
+                focusBitmapUri="pkg:/images/pill.9.png"
+                focusFootprintBitmapUri="" />
+        </Group>
+
+        <!-- Settings: full screen, from the Settings button in Picture & Sound. -->
+        <SettingsScreen id="settings" visible="false" />
+
+        <Timer id="cardTimer" duration="4" repeat="false" />
+        <Timer id="retryTimer" duration="5" repeat="false" />
+    </children>
+</component>

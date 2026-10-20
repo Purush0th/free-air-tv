@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Installs a release from inside the channel. Roku lets only its developer installer
+     (http://<this Roku>/plugin_install, user rokudev) replace a sideloaded channel, so this
+     downloads the release zip, checks it, and posts it there. Installing closes this copy of
+     FreeAir TV and starts the new one, so a "done" status may never arrive. -->
+<component name="SelfUpdater" extends="Task">
+    <interface>
+        <field id="zipUrl" type="string" />
+        <field id="shaUrl" type="string" />
+        <field id="password" type="string" />
+        <!-- "downloading", "installing", "done", "badpassword", or "error: <what>". -->
+        <field id="status" type="string" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="SelfUpdater.brs" />
+</component>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings, as on Fire TV (activity_settings.xml at FHD): two panes at 30/70 on a near-black
+     ground. Left: each language under Channels, with a tick for the whole language, then
+     Updates and About under App. Right, in smaller type: what the focused left item holds.
+     Up/Down move in a pane, Right enters the right pane, Left returns, OK ticks or acts,
+     Back leaves. -->
+<component name="SettingsScreen" extends="Group">
+    <interface>
+        <!-- In: every active channel ({id, name, label22, lang}), the list's source line, and
+             the status of a channel-list check started from here. -->
+        <field id="channels" type="array" onChange="onChannels" />
+        <field id="source" type="string" onChange="onInfo" />
+        <field id="refreshStatus" type="string" onChange="onInfo" />
+        <!-- Out: the user asked to check GitHub; the user left Settings. -->
+        <field id="refresh" type="boolean" alwaysNotify="true" />
+        <field id="closed" type="boolean" alwaysNotify="true" />
+        <function name="open" />
+    </interface>
+    <script type="text/brightscript" uri="Common.brs" />
+    <script type="text/brightscript" uri="SettingsScreen.brs" />
+    <children>
+        <Rectangle width="1920" height="1080" color="0x0A0A0AFF" />
+
+        <Poster translation="[136,76]" width="56" height="56" uri="pkg:/images/logo_mark.png" />
+        <Label translation="[216,72]" height="64" vertAlign="center" text="Settings" color="0xFFFFFFFF">
+            <Font role="font" uri="font:BoldSystemFontFile" size="44" />
+        </Label>
+        <!-- The left pane is laid out by SettingsScreen.brs rather than a list, so the section
+             headings can't take the highlight: a white pill on the focused row, or a grey one
+             on the row the right pane shows while focus is over there. -->
+        <Poster id="navPill" uri="pkg:/images/pill.9.png" width="490" height="104" visible="false" />
+        <Group id="navGroup" translation="[112,160]" />
+        <!-- Holds focus while the left pane is active; its keys reach onKeyEvent. -->
+        <Group id="navKeys" focusable="true" />
+
+        <Group translation="[666,72]">
+            <Label id="detailTitle" translation="[28,0]" height="44" vertAlign="center" color="0xFFFFFFFF">
+                <Font role="font" uri="font:BoldSystemFontFile" size="28" />
+            </Label>
+            <Poster id="detailTitleImage" blendColor="0xFFFFFFFF" />
+            <Label id="detailSub" translation="[28,44]" height="32" vertAlign="center" color="0xB4B4B4FF">
+                <Font role="font" uri="font:SystemFontFile" size="20" />
+            </Label>
+        </Group>
+        <MarkupList id="detail"
+            translation="[666,160]"
+            itemComponentName="SettingItem"
+            itemSize="[1142,80]"
+            itemSpacing="[0,8]"
+            numRows="10"
+            vertFocusAnimationStyle="floatingFocus"
+            drawFocusFeedback="true"
+            drawFocusFeedbackOnTop="false"
+            focusBitmapUri="pkg:/images/pill.9.png"
+            focusFootprintBitmapUri="" />
+    </children>
+</component>

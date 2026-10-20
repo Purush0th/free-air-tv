@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fetches channels.json off the render thread (roUrlTransfer is not allowed there). -->
+<component name="ChannelLoader" extends="Task">
+    <interface>
+        <field id="url" type="string" />
+        <!-- The response body, or "" when the fetch failed. -->
+        <field id="body" type="string" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="ChannelLoader.brs" />
+</component>

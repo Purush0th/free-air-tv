@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A Settings row (Fire TV item_setting / item_setting_detail / item_group at FHD): a heading,
+     or a title with an optional second line (text, and/or a pre-drawn Tamil image), a value
+     on the right, or a tick box. The left pane uses the large size, the right pane the small one
+     (picked by the row's width). The list draws the white pill under the focused row, and the
+     grey "you are here" pill on the left pane while focus is on the right. -->
+<component name="SettingItem" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" onChange="onContent" />
+        <field id="focusPercent" type="float" onChange="render" />
+        <field id="width" type="float" onChange="onContent" />
+        <field id="height" type="float" />
+    </interface>
+    <script type="text/brightscript" uri="SettingItem.brs" />
+    <children>
+        <Label id="heading" color="0x9E9E9EFF" visible="false" />
+        <Label id="title" color="0xFFFFFFFF" />
+        <Poster id="subImage" />
+        <Label id="sub" color="0xB4B4B4FF" />
+        <Label id="value" horizAlign="right" color="0xF2A93BFF" />
+        <Poster id="check" visible="false" />
+    </children>
+</component>

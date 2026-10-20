@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asks GitHub for the newest Roku release (tags roku-v<version>; the Fire TV app's own
+     releases are tagged v<version> and are left alone). -->
+<component name="UpdateChecker" extends="Task">
+    <interface>
+        <!-- The newest Roku version on GitHub, e.g. "0.1.6"; "" if none; "error" if GitHub
+             could not be reached. -->
+        <!-- Its zip and the zip's .sha256, when latest is a version. Set before latest. -->
+        <field id="zipUrl" type="string" />
+        <field id="shaUrl" type="string" />
+        <field id="latest" type="string" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="UpdateChecker.brs" />
+</component>

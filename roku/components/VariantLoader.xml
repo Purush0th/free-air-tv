@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reads a channel's HLS master playlist and lists the picture sizes it offers. -->
+<component name="VariantLoader" extends="Task">
+    <interface>
+        <field id="channelId" type="string" />
+        <field id="url" type="string" />
+        <!-- [{height, bandwidth}], tallest first, one per height (its highest bitrate); [] if none. -->
+        <field id="variants" type="array" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="VariantLoader.brs" />
+</component>
