@@ -10,5 +10,6 @@
         <field id="shaUrl" type="string" />
         <field id="latest" type="string" alwaysNotify="true" />
     </interface>
+    <script type="text/brightscript" uri="Common.brs" />
     <script type="text/brightscript" uri="UpdateChecker.brs" />
 </component>

@@ -26,9 +26,11 @@ Set-Content $saved $Roku
 
 if (-not $Zip) {
     Write-Host 'Looking for the newest FreeAir TV for Roku release on GitHub...'
-    $releases = Invoke-RestMethod -Uri 'https://api.github.com/repos/Purush0th/free-air-tv/releases?per_page=30' `
+    $releases = Invoke-RestMethod -Uri 'https://api.github.com/repos/Purush0th/free-air-tv/releases?per_page=100' `
         -Headers @{ 'User-Agent' = 'FreeAirTV-update.ps1' }
-    $release = $releases | Where-Object { $_.tag_name -like 'roku-v*' } | Select-Object -First 1
+    # GitHub doesn't list releases newest first, so take the highest roku-v version.
+    $release = $releases | Where-Object { $_.tag_name -like 'roku-v*' } |
+        Sort-Object { [version]($_.tag_name -replace '^roku-v', '') } -Descending | Select-Object -First 1
     if (-not $release) { throw 'No Roku release (roku-v* tag) found on GitHub.' }
     $asset = $release.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1
     if (-not $asset) { throw "Release $($release.tag_name) has no zip." }
