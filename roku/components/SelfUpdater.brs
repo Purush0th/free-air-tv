@@ -76,10 +76,25 @@ sub install()
     post = CreateObject("roUrlTransfer")
     post.SetUrl("http://" + ip + "/plugin_install")
     post.SetUserAndPassword("rokudev", m.top.password)
-    post.AddHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
     post.SetMessagePort(port)
-    post.AsyncPostFromFile(body)
-    msg = waitFor(post, port, 120)
+    ' The installer uses digest authentication. Sent cold, the upload goes out without the
+    ' password, the installer answers 401 part-way and drops the connection, which can surface
+    ' as error -55 (failed sending data). So authenticate with a small request first; the same
+    ' transfer then sends the upload already signed. Network errors are retried.
+    post.AsyncGetToString()
+    msg = waitFor(post, port, 20)
+    if msg <> invalid and msg.GetResponseCode() = 401
+        report("badpassword")
+        return
+    end if
+    post.AddHeader("Content-Type", "multipart/form-data; boundary=" + boundary)
+    for attempt = 1 to 3
+        post.AsyncPostFromFile(body)
+        msg = waitFor(post, port, 120)
+        if msg = invalid or msg.GetResponseCode() >= 0 then exit for
+        print "FreeAir update: upload attempt "; attempt; " failed: "; msg.GetResponseCode(); " "; msg.GetFailureReason()
+        Sleep(2000)
+    end for
     ' If the install went ahead, this copy of the channel is usually closed before here.
     if msg = invalid
         report("error: the Roku's installer didn't answer")
