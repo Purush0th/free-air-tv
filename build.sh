@@ -4,7 +4,7 @@
 #
 #   VERSION=1.2.0 KEYSTORE_FILE=release.keystore KEYSTORE_PASSWORD=... ./build.sh
 #
-# Output: build/FreeAirTV-$VERSION.apk and build/FreeAirTV-$VERSION.apk.sha256
+# Output: build/FreeAirTV-android-$VERSION.apk and build/FreeAirTV-android-$VERSION.apk.sha256
 # Libraries are listed with their checksums in deps.lock, downloaded into .deps/ and verified.
 set -euo pipefail
 
@@ -103,10 +103,10 @@ echo "5/6 Aligning"
 "$BT/zipalign" -p -f 4 "$OUT/unaligned.apk" "$OUT/aligned.apk"
 
 echo "6/6 Signing"
-APK="$OUT/FreeAirTV-$VERSION.apk"
+APK="$OUT/FreeAirTV-android-$VERSION.apk"
 "$BT/apksigner" sign --ks "$KEYSTORE_FILE" --ks-pass env:KEYSTORE_PASSWORD \
   --ks-key-alias "$KEY_ALIAS" --out "$APK" "$OUT/aligned.apk"
 "$BT/apksigner" verify "$APK"
-(cd "$OUT" && sha256sum "FreeAirTV-$VERSION.apk" > "FreeAirTV-$VERSION.apk.sha256")
+(cd "$OUT" && sha256sum "FreeAirTV-android-$VERSION.apk" > "FreeAirTV-android-$VERSION.apk.sha256")
 echo "Built $APK"
 cat "$APK.sha256"

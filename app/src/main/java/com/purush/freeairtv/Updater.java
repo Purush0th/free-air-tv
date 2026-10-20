@@ -25,9 +25,10 @@ import java.util.Locale;
 /**
  * Self-update from the repository's GitHub Releases.
  *
- * <p>A release is expected to carry two assets: {@code FreeAirTV-<version>.apk} and
- * {@code FreeAirTV-<version>.apk.sha256} (the hex digest, optionally followed by the
- * file name). The APK is downloaded, its checksum verified, and handed to the system
+ * <p>Android releases are tagged {@code android-vX.Y.Z} (older ones {@code vX.Y.Z}); Roku
+ * releases ({@code roku-v*}) share the repository and are skipped. A release carries two
+ * assets: {@code FreeAirTV-android-<version>.apk} and its {@code .apk.sha256} (the hex digest,
+ * optionally followed by the file name). The APK is downloaded, its checksum verified, and handed to the system
  * installer, which asks for one confirmation on the TV. Android itself refuses the
  * update unless it is signed with the same key as the installed app.
  */
@@ -80,14 +81,17 @@ final class Updater {
     }
 
     /**
-     * Asks GitHub for the latest release. Blocking; call off the main thread.
+     * Asks GitHub for the newest Android release. Blocking; call off the main thread.
      * Returns the release if it is newer than this app, otherwise null.
+     *
+     * <p>Lists recent releases rather than reading "latest": Roku releases live in the same
+     * repository, and GitHub does not list releases in version order.
      */
     Release check() {
         String repo = context.getString(R.string.github_repo);
         HttpURLConnection c = null;
         try {
-            URL url = new URL("https://api.github.com/repos/" + repo + "/releases/latest");
+            URL url = new URL("https://api.github.com/repos/" + repo + "/releases?per_page=50");
             c = (HttpURLConnection) url.openConnection();
             c.setConnectTimeout(15_000);
             c.setReadTimeout(15_000);
@@ -100,30 +104,47 @@ final class Updater {
                 return null;
             }
             prefs().edit().putLong(KEY_CHECKED_AT, System.currentTimeMillis()).apply();
-            JSONObject release;
+            JSONArray releases;
             try (InputStream in = c.getInputStream()) {
-                release = new JSONObject(ChannelStore.readAll(in));
+                releases = new JSONArray(ChannelStore.readAll(in));
             }
-            String version = release.getString("tag_name").replaceFirst("^[vV]", "");
-            String apkUrl = null;
-            String shaUrl = null;
-            JSONArray assets = release.optJSONArray("assets");
-            for (int i = 0; assets != null && i < assets.length(); i++) {
-                JSONObject a = assets.getJSONObject(i);
-                String name = a.getString("name");
-                if (name.endsWith(".apk")) {
-                    apkUrl = a.getString("browser_download_url");
-                } else if (name.endsWith(".apk.sha256")) {
-                    shaUrl = a.getString("browser_download_url");
+            String bestVersion = null;
+            String bestApk = null;
+            String bestSha = null;
+            for (int r = 0; r < releases.length(); r++) {
+                JSONObject release = releases.getJSONObject(r);
+                if (release.optBoolean("draft") || release.optBoolean("prerelease")) {
+                    continue;
+                }
+                String version = androidVersion(release.optString("tag_name"));
+                if (version == null || (bestVersion != null && compareVersions(version, bestVersion) <= 0)) {
+                    continue;
+                }
+                String apkUrl = null;
+                String shaUrl = null;
+                JSONArray assets = release.optJSONArray("assets");
+                for (int i = 0; assets != null && i < assets.length(); i++) {
+                    JSONObject a = assets.getJSONObject(i);
+                    String name = a.getString("name");
+                    if (name.endsWith(".apk")) {
+                        apkUrl = a.getString("browser_download_url");
+                    } else if (name.endsWith(".apk.sha256")) {
+                        shaUrl = a.getString("browser_download_url");
+                    }
+                }
+                if (apkUrl != null && shaUrl != null) {
+                    bestVersion = version;
+                    bestApk = apkUrl;
+                    bestSha = shaUrl;
                 }
             }
-            if (apkUrl == null || shaUrl == null) {
-                Log.w(TAG, "Release " + version + " has no APK and checksum");
+            if (bestVersion == null) {
+                Log.w(TAG, "No Android release with an APK and checksum");
                 return null;
             }
-            prefs().edit().putString(KEY_VERSION, version).putString(KEY_APK_URL, apkUrl)
-                    .putString(KEY_SHA_URL, shaUrl).apply();
-            Log.i(TAG, "Latest release " + version + ", installed " + BuildInfo.versionName(context));
+            prefs().edit().putString(KEY_VERSION, bestVersion).putString(KEY_APK_URL, bestApk)
+                    .putString(KEY_SHA_URL, bestSha).apply();
+            Log.i(TAG, "Newest release " + bestVersion + ", installed " + BuildInfo.versionName(context));
             return available();
         } catch (Exception e) {
             Log.w(TAG, "Release check failed", e);
@@ -133,6 +154,15 @@ final class Updater {
                 c.disconnect();
             }
         }
+    }
+
+    /** "android-v1.2.3" or "v1.2.3" gives "1.2.3"; any other tag (such as roku-v*) gives null. */
+    static String androidVersion(String tag) {
+        String t = tag.startsWith("android-") ? tag.substring("android-".length()) : tag;
+        if (!t.matches("[vV]\\d+(\\.\\d+)*")) {
+            return null;
+        }
+        return t.substring(1);
     }
 
     /**

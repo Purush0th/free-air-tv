@@ -11,11 +11,11 @@ A simple live TV app for Fire TV and Android TV that plays free-to-air Tamil cha
 ## Install on a Fire TV
 
 1. On the TV: Settings > My Fire TV > Developer options. Turn on **ADB debugging** and **Apps from unknown sources** (or **Install unknown apps** for the app you use to install).
-2. Download `FreeAirTV-<version>.apk` from the [latest release](../../releases/latest).
+2. Download `FreeAirTV-android-<version>.apk` from the newest **FreeAir TV for Android** release on the [releases page](../../releases).
 3. Install it, either with the Downloader app or from a computer on the same network:
    ```bash
    adb connect <tv-ip>:5555
-   adb install FreeAirTV-<version>.apk
+   adb install FreeAirTV-android-<version>.apk
    ```
 4. Let FreeAir TV install its own updates (once):
    ```bash
@@ -64,9 +64,18 @@ Needs JDK 17 and the Android SDK with `platforms;android-35` and `build-tools;35
 
 ## Releasing
 
-1. Push a tag: `git tag v1.1.0 && git push origin v1.1.0`.
-2. GitHub Actions builds and signs the APK and publishes a release with the APK and its `.sha256`.
-3. Installed apps see it within 12 hours, or at once with Settings > Check for Updates.
+Each platform has its own tag prefix, so releases and their files say which platform they are for:
+
+| Platform | Tag | Release | Files |
+| --- | --- | --- | --- |
+| Android (Fire TV) | `android-vX.Y.Z` | FreeAir TV for Android X.Y.Z | `FreeAirTV-android-X.Y.Z.apk` + `.sha256` |
+| Roku | `roku-vX.Y.Z` | FreeAir TV for Roku X.Y.Z | `FreeAirTV-roku-X.Y.Z.zip` + `.sha256` |
+
+1. Push a tag, for example `git tag android-v1.1.15 && git push origin android-v1.1.15`.
+2. GitHub Actions builds (and for Android, signs) the app and publishes the release.
+3. Installed apps see it within 12 hours, or at once with Settings > Updates > Check for App Update. Each app looks only at its own platform's tags.
+
+Android releases up to 1.1.14 were tagged `vX.Y.Z`; 1.1.14 is the bridge that taught installed apps the new tags.
 
 The workflow needs two repository secrets: `KEYSTORE_BASE64` (the release keystore, base64-encoded) and `KEYSTORE_PASSWORD`. **The signing key is never committed.** Every update must be signed with the same key, so keep a backup of the keystore and its password somewhere safe.
 

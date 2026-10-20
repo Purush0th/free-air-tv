@@ -2,7 +2,7 @@
 #
 #   powershell -ExecutionPolicy Bypass -File build.ps1 [-Version 1.2.0]
 #
-# Output: build\FreeAirTV-<version>.apk and build\FreeAirTV-<version>.apk.sha256
+# Output: build\FreeAirTV-android-<version>.apk and build\FreeAirTV-android-<version>.apk.sha256
 #
 # Libraries (Media3 ExoPlayer and its dependencies) are listed with their checksums in
 # deps.lock, downloaded into .deps\ and verified before use.
@@ -160,12 +160,12 @@ if (-not (Test-Path $ks)) {
 }
 if (-not $ksPass) { throw "No keystore password: set FREEAIRTV_KEYSTORE_PASS or create $passFile" }
 
-$apk = Join-Path $out "FreeAirTV-$Version.apk"
+$apk = Join-Path $out "FreeAirTV-android-$Version.apk"
 Run "$bt\apksigner.bat" @('sign', '--ks', $ks, '--ks-pass', "pass:$ksPass", '--ks-key-alias', $alias,
     '--out', $apk, "$out\aligned.apk")
 Run "$bt\apksigner.bat" @('verify', $apk)
 
 $hash = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLower()
-WriteUtf8 "$apk.sha256" "$hash  FreeAirTV-$Version.apk`n"
+WriteUtf8 "$apk.sha256" "$hash  FreeAirTV-android-$Version.apk`n"
 Write-Host "Built $apk"
 Write-Host "SHA-256 $hash"

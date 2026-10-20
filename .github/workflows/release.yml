@@ -1,15 +1,18 @@
-# Builds, signs and publishes FreeAir TV when a version tag is pushed:
-#   git tag v1.1.0 && git push origin v1.1.0
-# Installed copies find the release within about 12 hours and offer to update.
+# Builds, signs and publishes FreeAir TV for Android (Fire TV) when an Android version tag
+# is pushed:
+#   git tag android-v1.1.15 && git push origin android-v1.1.15
+# Roku releases use roku-v* tags (roku-release.yml). Plain v* tags are the older Android
+# scheme, still built here for the bridge release that teaches installed apps the new tags.
+# Installed apps find the release within about 12 hours and offer to update.
 #
 # Repository secrets (Settings > Secrets and variables > Actions):
 #   KEYSTORE_BASE64    the release keystore, base64-encoded
 #   KEYSTORE_PASSWORD  its password
-name: Release
+name: Android release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['android-v*', 'v*']
 
 permissions:
   contents: write
@@ -37,10 +40,11 @@ jobs:
 
       - name: Build
         env:
-          VERSION: ${{ github.ref_name }}
+          TAG: ${{ github.ref_name }}
           KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
+          VERSION="${TAG#android-}"
           export VERSION="${VERSION#v}"
           chmod +x build.sh
           ./build.sh
@@ -48,9 +52,13 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$GITHUB_REF_NAME" build/FreeAirTV-*.apk build/FreeAirTV-*.apk.sha256 \
-            --title "FreeAir TV ${GITHUB_REF_NAME#v}" --generate-notes
+          VERSION="${TAG#android-}"
+          VERSION="${VERSION#v}"
+          # Marked latest: apps from 1.1.13 and earlier look only at the latest release.
+          gh release create "$TAG" build/FreeAirTV-android-*.apk build/FreeAirTV-android-*.apk.sha256 \
+            --title "FreeAir TV for Android $VERSION" --latest --generate-notes
 
       - name: Remove the signing key
         if: always()
