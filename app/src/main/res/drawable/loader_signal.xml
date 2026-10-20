@@ -9,21 +9,21 @@
         android:name="wave1"
         android:pathData="M38.1,54.1A14,14 0 0,1 57.9,54.1"
         android:strokeAlpha="0.18"
-        android:strokeColor="#FF00D2A8"
+        android:strokeColor="#FF00B896"
         android:strokeLineCap="round"
         android:strokeWidth="5" />
     <path
         android:name="wave2"
         android:pathData="M29.62,45.62A26,26 0 0,1 66.38,45.62"
         android:strokeAlpha="0.18"
-        android:strokeColor="#FF0EA5E9"
+        android:strokeColor="#FF0284C7"
         android:strokeLineCap="round"
         android:strokeWidth="5" />
     <path
         android:name="wave3"
         android:pathData="M21.13,37.13A38,38 0 0,1 74.87,37.13"
         android:strokeAlpha="0.18"
-        android:strokeColor="#FF2563EB"
+        android:strokeColor="#FF1D4ED8"
         android:strokeLineCap="round"
         android:strokeWidth="5" />
     <path

@@ -171,7 +171,14 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
             failures = 0;
             play(current);
         }
-        showGuide();
+        // Open straight onto the last channel, full screen; the guide is one press away. With
+        // nothing to play, open the guide so Settings (the gear) is in reach.
+        if (channels.isEmpty()) {
+            showGuide();
+        } else {
+            optionsPanel.setVisibility(View.GONE);
+            guide.setVisibility(View.GONE);
+        }
         handler.post(backgroundTick);
     }
 

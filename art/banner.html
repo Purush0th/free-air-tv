@@ -2,7 +2,7 @@
 <html><head><meta charset="utf-8"><title>FreeAir TV banner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;800&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;800&display=block" rel="stylesheet">
 <style>
   /* Laid out at 1280x720 (16:9) and rendered at quarter scale to the 320x180 px banner in
      drawable-xhdpi, the size Fire TV, Plex and Tailscale use.
@@ -11,9 +11,12 @@
      Projectivy zoom the focused tile and crop its edges. */
   html,body{margin:0;width:1280px;height:720px;overflow:hidden}
   body{background:#1C1C1C;font-family:"Plus Jakarta Sans",sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
-  .b{height:720px;display:flex;align-items:center;justify-content:center;gap:48px}
+  /* The logo sits a little above centre so its reflection, fading out below, balances it. */
+  .b{height:720px;display:flex;align-items:center;justify-content:center;padding-bottom:110px;box-sizing:border-box}
+  .logo{display:flex;align-items:center;gap:48px;
+    -webkit-box-reflect:below 14px linear-gradient(transparent 52%, rgba(255,255,255,.22))}
   img{width:196px;height:196px;flex:none}
   .name{white-space:nowrap;font-weight:800;font-size:190px;letter-spacing:-0.04em;line-height:1}
-  .name span{font-weight:500}
+  .name span{font-weight:300}
 </style></head>
-<body><div class="b"><img src="freeair-icon.svg" alt=""><div class="name">FreeAir <span>TV</span></div></div></body></html>
+<body><div class="b"><div class="logo"><img src="freeair-icon.svg" alt=""><div class="name">FreeAir <span>TV</span></div></div></div></body></html>
