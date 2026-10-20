@@ -253,12 +253,11 @@ sub play(i as integer, announce as boolean)
     content.live = true
     ' The same User-Agent the Fire TV app sends; some CDNs serve by it.
     content.HttpHeaders = ["User-Agent: FreeAirTV/" + appVersion()]
-    ' A chosen quality is pinned: the player may not climb above it or drop below it.
+    ' A chosen quality is pinned by playing a copy of the playlist that lists only that size
+    ' (written by VariantLoader); Auto plays the channel's own playlist.
     m.cappedAt = bandwidthCap(ch.id)
-    if m.cappedAt > 0
-        content.MaxBandwidth = m.cappedAt
-        content.MinBandwidth = m.cappedAt - 2
-    end if
+    v = pickVariant(ch.id)
+    if v <> invalid and v.pinUrl <> "" then content.url = v.pinUrl
     m.playingHeight = 0
     m.video.control = "stop"
     m.video.content = content
@@ -543,8 +542,8 @@ sub onVideoState()
         if state = "finished" and m.prevState = "error" then return
         m.prevState = state
         print "FreeAir: "; state; " "; m.video.errorCode; " "; m.video.errorMsg
-        ' A pinned size that won't play (Raj Digital Plus labels its 1080p H.264 level 3.2,
-        ' which Roku's decoder refuses): drop to the next lower size instead of retrying it.
+        ' A pinned size that won't play: drop to the next lower size instead of retrying it,
+        ' and to Auto once none is left.
         if state = "error" and m.cappedAt > 0 and m.current >= 0
             id = m.channels[m.current].id
             v = pickVariant(id)
