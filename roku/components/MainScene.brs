@@ -54,6 +54,8 @@ sub init()
     m.quality = 0
     if m.reg.Exists("quality") then m.quality = m.reg.Read("quality").ToInt()
     m.variants = {}       ' channel id -> [{height, bandwidth}] from its master playlist
+    m.badVariants = {}    ' "<channel id>|<height>" -> true: sizes Roku refused to play
+    m.prevState = ""
     m.playingHeight = 0   ' height of the picture playing now, 0 until known
     m.optRows = []
 
@@ -291,20 +293,30 @@ sub onVariants(event as object)
     if m.options.visible then buildOptions()
 end sub
 
-' The bitrate (kbps, rounded up) to pin for the chosen quality on this channel: its best picture
-' no taller than the choice, or its smallest if all are taller. 0 = Auto (no pin).
-function bandwidthCap(id as string) as integer
-    if m.quality <= 0 or not m.variants.DoesExist(id) then return 0
-    list = m.variants[id]
-    if list.Count() = 0 then return 0
-    pick = list[list.Count() - 1]
-    for each v in list
+' The size to pin for the chosen quality on this channel: its best picture no taller than the
+' choice, or its smallest if all are taller, leaving out sizes Roku refused. invalid = Auto.
+function pickVariant(id as string) as dynamic
+    if m.quality <= 0 or not m.variants.DoesExist(id) then return invalid
+    playable = []
+    for each v in m.variants[id]
+        if not m.badVariants.DoesExist(id + "|" + v.height.ToStr()) then playable.Push(v)
+    end for
+    if playable.Count() = 0 then return invalid
+    pick = playable[playable.Count() - 1]
+    for each v in playable
         if v.height <= m.quality
             pick = v
             exit for
         end if
     end for
-    return pick.bandwidth \ 1000 + 1
+    return pick
+end function
+
+' Its bitrate in kbps, rounded up; 0 = Auto (no pin).
+function bandwidthCap(id as string) as integer
+    v = pickVariant(id)
+    if v = invalid then return 0
+    return v.bandwidth \ 1000 + 1
 end function
 
 ' Height of the picture playing now, from the segment being downloaded.
@@ -373,7 +385,11 @@ sub buildOptions()
     for each h in heights
         m.optRows.Push({ kind: "quality", height: h })
         note = ""
-        if h = m.quality and m.playingHeight > 0 and m.playingHeight <> h then note = "Not offered here; plays the nearest lower"
+        if m.current >= 0 and m.badVariants.DoesExist(m.channels[m.current].id + "|" + h.ToStr())
+            note = "Can't play on Roku; plays the next lower"
+        else if h = m.quality and m.playingHeight > 0 and m.playingHeight <> h
+            note = "Not offered here; plays the nearest lower"
+        end if
         addOption(root, h.ToStr() + "p", note, h = m.quality)
     end for
     m.optRows.Push({ kind: "mute" })
@@ -523,9 +539,26 @@ sub onVideoState()
     else if state = "buffering"
         setCardState("", false)  ' the loader shows the connecting
     else if state = "error" or state = "finished"
+        ' Roku reports a failure as "error" and then "finished": act on it once.
+        if state = "finished" and m.prevState = "error" then return
+        m.prevState = state
         print "FreeAir: "; state; " "; m.video.errorCode; " "; m.video.errorMsg
+        ' A pinned size that won't play (Raj Digital Plus labels its 1080p H.264 level 3.2,
+        ' which Roku's decoder refuses): drop to the next lower size instead of retrying it.
+        if state = "error" and m.cappedAt > 0 and m.current >= 0
+            id = m.channels[m.current].id
+            v = pickVariant(id)
+            if v <> invalid
+                m.badVariants[id + "|" + v.height.ToStr()] = true
+                print "FreeAir: "; v.height; "p won't play on this Roku; trying the next lower size"
+                play(m.current, false)
+                return
+            end if
+        end if
         reconnect()
+        return
     end if
+    m.prevState = state
 end sub
 
 ' Live streams drop now and then: retry a few times (5 s apart) before giving up.

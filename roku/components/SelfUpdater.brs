@@ -19,18 +19,26 @@ function waitFor(xfer as object, port as object, timeout as integer) as dynamic
     return invalid
 end function
 
+sub report(status as string)
+    print "FreeAir update: "; status
+    m.top.status = status
+end sub
+
 sub install()
     zip = "tmp:/update.zip"
     body = "tmp:/update-body.bin"
     port = CreateObject("roMessagePort")
 
-    m.top.status = "downloading"
+    report("downloading")
     xfer = https(m.top.zipUrl)
     xfer.SetMessagePort(port)
     xfer.AsyncGetToFile(zip)
     msg = waitFor(xfer, port, 120)
-    if msg = invalid or msg.GetResponseCode() <> 200
-        m.top.status = "error: the download from GitHub failed"
+    if msg = invalid
+        report("error: the download from GitHub timed out")
+        return
+    else if msg.GetResponseCode() <> 200
+        report("error: the download from GitHub failed, " + msg.GetResponseCode().ToStr() + " " + msg.GetFailureReason())
         return
     end if
 
@@ -43,7 +51,7 @@ sub install()
         digest = CreateObject("roEVPDigest")
         digest.Setup("sha256")
         if parts.Count() = 0 or LCase(digest.Process(data)) <> LCase(parts[0])
-            m.top.status = "error: the download didn't match its checksum"
+            report("error: the download didn't match its checksum")
             return
         end if
     end if
@@ -59,7 +67,7 @@ sub install()
     data.AppendFile(body)
     tail.AppendFile(body)
 
-    m.top.status = "installing"
+    report("installing")
     ip = "127.0.0.1"
     for each name in CreateObject("roDeviceInfo").GetIPAddrs()
         ip = CreateObject("roDeviceInfo").GetIPAddrs()[name]
@@ -74,17 +82,17 @@ sub install()
     msg = waitFor(post, port, 120)
     ' If the install went ahead, this copy of the channel is usually closed before here.
     if msg = invalid
-        m.top.status = "error: the Roku's installer didn't answer"
+        report("error: the Roku's installer didn't answer")
     else if msg.GetResponseCode() = 401
-        m.top.status = "badpassword"
+        report("badpassword")
     else if msg.GetResponseCode() = 200
         page = msg.GetString()
         if Instr(1, page, "Install Success") > 0 or Instr(1, page, "Identical to previous") > 0
-            m.top.status = "done"
+            report("done")
         else
-            m.top.status = "error: the Roku's installer didn't accept the package"
+            report("error: the Roku's installer didn't accept the package")
         end if
     else
-        m.top.status = "error: the Roku's installer answered " + msg.GetResponseCode().ToStr()
+        report("error: the Roku's installer answered " + msg.GetResponseCode().ToStr() + " " + msg.GetFailureReason())
     end if
 end sub
