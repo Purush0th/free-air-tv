@@ -3,9 +3,14 @@
     <!-- One ground, one ink, two greys, one accent (turmeric, from the lamp in the logo). -->
     <color name="ground">#FF000000</color>
     <color name="surface">#FF111111</color>
+    <!-- Side panels over the picture: 88%: the channel shows through, text keeps 4.5:1 over white video. -->
+    <color name="surface_glass">#E0111111</color>
+    <!-- Settings: a near-black ground with grouped panels one step up. -->
+    <color name="settings_ground">#FF0A0A0A</color>
+    <color name="settings_panel">#FF171717</color>
     <color name="ink">#FFFFFFFF</color>
     <color name="muted">#FFB4B4B4</color>
-    <color name="faint">#FF949494</color>
+    <color name="faint">#FF9E9E9E</color>
     <color name="accent">#FFF2A93B</color>
     <!-- On the selected (white) row. -->
     <color name="ink_on_selected">#FF111111</color>

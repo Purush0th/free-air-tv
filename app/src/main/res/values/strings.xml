@@ -12,7 +12,7 @@
     <string name="press_back_to_exit">Press Back again to exit</string>
 
     <!-- Player panel -->
-    <string name="options_title">Picture and sound</string>
+    <string name="options_title">Picture &amp; Sound</string>
     <string name="quality">Quality</string>
     <string name="quality_auto">Auto</string>
     <string name="quality_auto_sub">Best for your connection</string>
@@ -37,23 +37,36 @@
 
     <!-- Settings -->
     <string name="settings_updates">Updates</string>
-    <string name="settings_channel_list">Channel list</string>
+    <string name="settings_channel_list">Channel List</string>
     <string name="settings_channels">Channels</string>
     <string name="settings_about">About</string>
+    <string name="settings_languages">Channels</string>
+    <string name="settings_app">App</string>
+    <string name="lang_sub">%1$s  ·  %2$d of %3$d on</string>
+    <string name="lang_detail_on">%1$d of %2$d channels on</string>
+    <string name="lang_detail_off">%1$s is off. Enable All turns it back on.</string>
+    <string name="enable_all">Enable All</string>
+    <string name="disable_all">Disable All</string>
+    <string name="updates_sub">Version %1$s</string>
+    <string name="about_version">Version</string>
+    <string name="about_source">Source code</string>
+    <string name="about_channels">Channels</string>
+    <string name="about_channels_value">%1$d in %2$d languages</string>
+    <string name="about_channels_value_one">%1$d in 1 language</string>
     <string name="shown">Shown</string>
     <string name="hidden">Hidden</string>
     <string name="never">never</string>
     <string name="just_now">just now</string>
-    <string name="update_check">Check for updates</string>
-    <string name="update_install">Install version %1$s</string>
+    <string name="update_check">Check for App Update</string>
+    <string name="update_install">Install Version %1$s</string>
     <string name="update_status">Version %1$s  ·  checked %2$s</string>
     <string name="update_checking">Checking GitHub…</string>
     <string name="update_none">You have the latest version.</string>
     <string name="update_downloading">Downloading version %1$s…</string>
     <string name="update_confirm">Press Install on the next screen to finish.</string>
-    <string name="update_failed">Update failed: %1$s</string>
+    <string name="update_failed">Update failed: %1$s. Check the connection and try again.</string>
     <string name="update_need_permission">Allow FreeAir TV to install apps: Settings, My Fire TV, Developer options, Install unknown apps.</string>
-    <string name="refresh">Refresh channel list</string>
+    <string name="refresh">Check for Channel Updates</string>
     <string name="refresh_checking">Checking GitHub…</string>
     <string name="refresh_changed">Channel list updated.</string>
     <string name="refresh_same">The channel list is already up to date.</string>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings row: a white pill where the focus is; a quiet grey pill on the left-pane item
+     whose contents the right pane shows while focus is over there; nothing otherwise. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <inset android:insetBottom="2dp" android:insetTop="2dp">
+            <shape android:shape="rectangle">
+                <solid android:color="@color/ink" />
+                <corners android:radius="10dp" />
+            </shape>
+        </inset>
+    </item>
+    <item android:state_activated="true">
+        <inset android:insetBottom="2dp" android:insetTop="2dp">
+            <shape android:shape="rectangle">
+                <solid android:color="#FF262626" />
+                <corners android:radius="10dp" />
+            </shape>
+        </inset>
+    </item>
+    <item android:drawable="@android:color/transparent" />
+</selector>

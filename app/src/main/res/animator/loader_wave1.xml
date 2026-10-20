@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wave 1 brightens and fades every 1.26 s, 0ms after the first, so the signal travels outward. -->
+<objectAnimator xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="1260"
+    android:repeatCount="infinite"
+    android:repeatMode="restart"
+    android:startOffset="0">
+    <propertyValuesHolder android:propertyName="strokeAlpha">
+        <keyframe android:fraction="0" android:value="0.18" />
+        <keyframe android:fraction="0.3" android:value="1" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        <keyframe android:fraction="0.75" android:value="0.18" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        <keyframe android:fraction="1" android:value="0.18" />
+    </propertyValuesHolder>
+</objectAnimator>

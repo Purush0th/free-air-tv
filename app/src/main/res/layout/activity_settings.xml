@@ -1,48 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Settings, two panes at 30/70: languages and app items on the left; the chosen item's
+     channels or actions on the right, in type 30% smaller. Left and Right move between them. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/surface"
-    android:orientation="vertical"
-    android:paddingHorizontal="64dp"
+    android:background="@color/settings_ground"
+    android:orientation="horizontal"
+    android:paddingStart="56dp"
     android:paddingTop="36dp"
-    android:paddingBottom="20dp">
+    android:paddingEnd="56dp"
+    android:paddingBottom="24dp">
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="3"
+        android:orientation="vertical">
 
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:contentDescription="@null"
-            android:src="@drawable/logo_mark" />
-
-        <TextView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:src="@drawable/logo_mark" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/settings"
+                android:textColor="@color/ink"
+                android:textSize="22sp" />
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/nav"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="12dp"
             android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/settings"
-            android:textColor="@color/ink"
-            android:textSize="26sp" />
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:listSelector="@android:color/transparent"
+            android:scrollbars="none" />
     </LinearLayout>
 
-    <!-- One column, at a readable width; the rest of the screen stays calm. -->
-    <ListView
-        android:id="@+id/list"
-        android:layout_width="640dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="12dp"
-        android:layout_weight="1"
-        android:choiceMode="singleChoice"
-        android:divider="@null"
-        android:dividerHeight="2dp"
-        android:drawSelectorOnTop="false"
-        android:listSelector="@drawable/list_selector"
-        android:scrollbars="none" />
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="32dp"
+        android:layout_weight="7"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/detail_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="14dp"
+            android:textColor="@color/ink"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/detail_sub"
+            android:accessibilityLiveRegion="polite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:paddingStart="14dp"
+            android:textColor="@color/muted"
+            android:textSize="11sp" />
+
+        <ListView
+            android:id="@+id/detail"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="12dp"
+            android:layout_weight="1"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:listSelector="@android:color/transparent"
+            android:scrollbars="none" />
+    </LinearLayout>
 </LinearLayout>

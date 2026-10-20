@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Connecting" loader: the three waves pulse outward in turn. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/loader_signal">
+    <target android:name="wave1" android:animation="@animator/loader_wave1" />
+    <target android:name="wave2" android:animation="@animator/loader_wave2" />
+    <target android:name="wave3" android:animation="@animator/loader_wave3" />
+</animated-vector>

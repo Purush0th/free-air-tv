@@ -17,8 +17,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -32,6 +35,8 @@ import java.util.Set;
  *   <li>the list built into the APK</li>
  * </ol>
  * Hidden channels are remembered by id, so they stay hidden when the list is updated.
+ * A whole language can be switched off too; its channels then leave the guide whatever
+ * their own setting.
  */
 final class ChannelStore {
 
@@ -43,6 +48,31 @@ final class ChannelStore {
     private static final String KEY_ETAG = "remote_etag";
     private static final String KEY_FETCHED_AT = "remote_fetched_at";
     private static final String KEY_LAST = "last_channel_id";
+    private static final String KEY_HIDDEN_LANGS = "hidden_langs";
+    private static final String KEY_IDS_MIGRATED = "ids_migrated_v2";
+    /** Language of channels that do not name one. */
+    static final String DEFAULT_LANG = "ta-IN";
+    /** Channel ids before the fa-tv-ch-N scheme, so hidden channels and the last channel carry over. */
+    private static final Map<String, String> LEGACY_IDS = new HashMap<>();
+    static {
+        LEGACY_IDS.put("svbc2", "fa-tv-ch-1");
+        LEGACY_IDS.put("sri-sankara", "fa-tv-ch-2");
+        LEGACY_IDS.put("aastha-tamil", "fa-tv-ch-3");
+        LEGACY_IDS.put("dd-tamil", "fa-tv-ch-4");
+        LEGACY_IDS.put("raj-tv", "fa-tv-ch-5");
+        LEGACY_IDS.put("raj-digital", "fa-tv-ch-6");
+        LEGACY_IDS.put("polimer-tv", "fa-tv-ch-7");
+        LEGACY_IDS.put("makkal-tv", "fa-tv-ch-8");
+        LEGACY_IDS.put("vasanth-tv", "fa-tv-ch-9");
+        LEGACY_IDS.put("news18-tn", "fa-tv-ch-10");
+        LEGACY_IDS.put("puthiya-thalaimurai", "fa-tv-ch-11");
+        LEGACY_IDS.put("thanthi-tv", "fa-tv-ch-12");
+        LEGACY_IDS.put("sathiyam-tv", "fa-tv-ch-13");
+        LEGACY_IDS.put("news7-tamil", "fa-tv-ch-14");
+        LEGACY_IDS.put("polimer-news", "fa-tv-ch-15");
+        LEGACY_IDS.put("news-tamil-24x7", "fa-tv-ch-16");
+        LEGACY_IDS.put("malai-murasu", "fa-tv-ch-17");
+    }
     /** How often the remote list is re-checked while the app is in use. */
     static final long REFRESH_INTERVAL_MS = 6L * 60 * 60 * 1000;
 
@@ -54,6 +84,27 @@ final class ChannelStore {
 
     ChannelStore(Context context) {
         this.context = context.getApplicationContext();
+        migrateIds();
+    }
+
+    /** Once: rename stored channel ids from the old scheme to fa-tv-ch-N. */
+    private void migrateIds() {
+        SharedPreferences p = prefs();
+        if (p.getBoolean(KEY_IDS_MIGRATED, false)) {
+            return;
+        }
+        Set<String> hidden = new HashSet<>();
+        for (String id : p.getStringSet(KEY_HIDDEN, new HashSet<>())) {
+            String renamed = LEGACY_IDS.get(id);
+            hidden.add(renamed != null ? renamed : id);
+        }
+        String last = p.getString(KEY_LAST, null);
+        String lastRenamed = last == null ? null : LEGACY_IDS.get(last);
+        p.edit()
+                .putStringSet(KEY_HIDDEN, hidden)
+                .putString(KEY_LAST, lastRenamed != null ? lastRenamed : last)
+                .putBoolean(KEY_IDS_MIGRATED, true)
+                .apply();
     }
 
     // ---- Loading --------------------------------------------------------------------
@@ -110,8 +161,11 @@ final class ChannelStore {
             if (!ids.add(id)) {
                 throw new IllegalArgumentException("Duplicate channel id " + id);
             }
-            out.add(new Channel(id, name, o.optString("tamil", "").trim(),
-                    o.optString("group", "").trim(), url));
+            // "tamil" is the field's name before lists had several languages.
+            String locale = o.optString("locale", o.optString("tamil", "")).trim();
+            String lang = o.optString("lang", "").trim();
+            out.add(new Channel(id, name, locale, o.optString("group", "").trim(), url,
+                    lang.isEmpty() ? DEFAULT_LANG : lang));
         }
         if (out.isEmpty()) {
             throw new IllegalArgumentException("No channels");
@@ -204,13 +258,52 @@ final class ChannelStore {
     /** The channels to show in the guide and to zap through. */
     List<Channel> visible() {
         Set<String> hidden = hiddenIds();
+        Set<String> hiddenLangs = hiddenLangs();
         List<Channel> out = new ArrayList<>();
         for (Channel ch : all) {
-            if (!hidden.contains(ch.id)) {
+            if (!hidden.contains(ch.id) && !hiddenLangs.contains(ch.lang)) {
                 out.add(ch);
             }
         }
         return out;
+    }
+
+    /** Language tags in the order they first appear in the list. */
+    List<String> languages() {
+        Set<String> langs = new LinkedHashSet<>();
+        for (Channel ch : all) {
+            langs.add(ch.lang);
+        }
+        return new ArrayList<>(langs);
+    }
+
+    /** Every channel in one language, in list order. */
+    List<Channel> channelsIn(String lang) {
+        List<Channel> out = new ArrayList<>();
+        for (Channel ch : all) {
+            if (ch.lang.equals(lang)) {
+                out.add(ch);
+            }
+        }
+        return out;
+    }
+
+    boolean isLanguageHidden(String lang) {
+        return hiddenLangs().contains(lang);
+    }
+
+    void setLanguageHidden(String lang, boolean hidden) {
+        Set<String> langs = new HashSet<>(hiddenLangs());
+        if (hidden) {
+            langs.add(lang);
+        } else {
+            langs.remove(lang);
+        }
+        prefs().edit().putStringSet(KEY_HIDDEN_LANGS, langs).apply();
+    }
+
+    private Set<String> hiddenLangs() {
+        return prefs().getStringSet(KEY_HIDDEN_LANGS, new HashSet<>());
     }
 
     boolean isHidden(Channel ch) {
@@ -223,6 +316,19 @@ final class ChannelStore {
             ids.add(ch.id);
         } else {
             ids.remove(ch.id);
+        }
+        prefs().edit().putStringSet(KEY_HIDDEN, ids).apply();
+    }
+
+    /** Shows or hides several channels in one write (Enable All / Disable All). */
+    void setHidden(List<Channel> channels, boolean hidden) {
+        Set<String> ids = new HashSet<>(hiddenIds());
+        for (Channel ch : channels) {
+            if (hidden) {
+                ids.add(ch.id);
+            } else {
+                ids.remove(ch.id);
+            }
         }
         prefs().edit().putStringSet(KEY_HIDDEN, ids).apply();
     }

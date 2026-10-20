@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picture &amp; Sound section label: item_group at 70% text size. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/group"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="12dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="8dp"
+    android:textColor="@color/faint"
+    android:fontFamily="sans-serif-medium"
+    android:letterSpacing="0.08"
+    android:textAllCaps="true"
+    android:textSize="10sp" />

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Channel checkbox (on): darker on the white focused row so it keeps 3:1 there. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/check_on_selected" android:state_selected="true" />
+    <item android:drawable="@drawable/check_on_base" />
+</selector>

@@ -13,33 +13,73 @@
         android:layout_gravity="center"
         android:focusable="false" />
 
-    <!-- Connecting / retrying message. -->
+    <!-- Retrying / paused / no-channels message. -->
     <TextView
         android:id="@+id/status"
+        android:accessibilityLiveRegion="polite"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="@drawable/panel"
-        android:maxWidth="560dp"
+        android:background="@drawable/scrim_card"
+        android:maxWidth="520dp"
         android:paddingHorizontal="24dp"
         android:paddingVertical="16dp"
         android:textColor="@color/ink"
-        android:textSize="20sp"
+        android:textSize="16sp"
         android:visibility="gone" />
 
-    <!-- Now-watching card after a channel change. Top-left: Tamil news runs tickers along the bottom. -->
+    <!-- Connecting: the logo's signal waves pulse outward, with the channel's name below. -->
+    <LinearLayout
+        android:id="@+id/loader"
+        android:accessibilityLiveRegion="polite"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/scrim_loader"
+        android:gravity="center_horizontal"
+        android:minWidth="72dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/loader_icon"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/loader" />
+
+        <TextView
+            android:id="@+id/loader_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:maxWidth="120dp"
+            android:textColor="@color/muted"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Now-watching card after a channel change: compact and translucent.
+         Top-left, because Tamil news runs tickers along the bottom. -->
     <LinearLayout
         android:id="@+id/banner"
+        android:accessibilityLiveRegion="polite"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_margin="40dp"
-        android:background="@drawable/panel"
+        android:layout_margin="32dp"
+        android:background="@drawable/scrim_card"
         android:gravity="center_vertical"
-        android:minWidth="420dp"
+        android:maxWidth="440dp"
         android:orientation="horizontal"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="16dp"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="12dp"
         android:visibility="gone">
 
         <TextView
@@ -47,100 +87,106 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFeatureSettings="tnum"
-            android:minWidth="44dp"
+            android:gravity="end"
+            android:minWidth="20dp"
             android:textColor="@color/faint"
-            android:textSize="28sp" />
+            android:textSize="14sp" />
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
+            android:layout_marginStart="12dp"
             android:orientation="vertical">
 
             <TextView
                 android:id="@+id/banner_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
+                android:maxWidth="240dp"
                 android:textColor="@color/ink"
-                android:textSize="26sp" />
+                android:textSize="18sp" />
 
             <TextView
                 android:id="@+id/banner_tamil"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
                 android:maxLines="1"
+                android:maxWidth="240dp"
                 android:textColor="@color/muted"
-                android:textSize="18sp" />
+                android:textSize="13sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
+            android:layout_marginStart="24dp"
             android:gravity="end"
             android:orientation="vertical">
-
-            <TextClock
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFeatureSettings="tnum"
-                android:format12Hour="h:mm a"
-                android:format24Hour="HH:mm"
-                android:textColor="@color/muted"
-                android:textSize="18sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <View
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
                     android:background="@drawable/live_dot" />
 
                 <TextView
                     android:id="@+id/banner_quality"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
+                    android:fontFamily="sans-serif-medium"
                     android:fontFeatureSettings="tnum"
                     android:text="@string/live"
                     android:textColor="@color/accent"
-                    android:textSize="16sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
+
+            <TextClock
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFeatureSettings="tnum"
+                android:format12Hour="h:mm a"
+                android:format24Hour="HH:mm"
+                android:textColor="@color/muted"
+                android:textSize="13sp" />
         </LinearLayout>
     </LinearLayout>
 
     <!-- Volume feedback, top right. -->
     <TextView
         android:id="@+id/volume_toast"
+        android:accessibilityLiveRegion="polite"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_margin="40dp"
-        android:background="@drawable/panel"
+        android:background="@drawable/scrim_card"
         android:fontFeatureSettings="tnum"
         android:paddingHorizontal="20dp"
         android:paddingVertical="12dp"
         android:textColor="@color/ink"
-        android:textSize="20sp"
+        android:textSize="16sp"
         android:visibility="gone" />
 
     <!-- Side nav: the channel list. -->
     <LinearLayout
         android:id="@+id/guide"
-        android:layout_width="340dp"
+        android:layout_width="272dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@color/surface"
+        android:background="@color/surface_glass"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
+        android:paddingHorizontal="16dp"
         android:paddingTop="28dp"
         android:paddingBottom="20dp">
 
@@ -155,6 +201,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:contentDescription="@null"
+                android:importantForAccessibility="no"
                 android:src="@drawable/logo_mark" />
 
             <TextView
@@ -163,10 +210,11 @@
                 android:layout_marginStart="12dp"
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-medium"
+                android:ellipsize="end"
                 android:maxLines="1"
                 android:text="@string/app_name"
                 android:textColor="@color/ink"
-                android:textSize="22sp" />
+                android:textSize="26sp" />
 
             <!-- Settings: icon-only, so it carries a spoken label and a strong focus state. -->
             <ImageButton
@@ -201,12 +249,12 @@
     <!-- Player panel: quality, volume, mute. Opens with Right. -->
     <LinearLayout
         android:id="@+id/options"
-        android:layout_width="340dp"
+        android:layout_width="272dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
-        android:background="@color/surface"
+        android:background="@color/surface_glass"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
+        android:paddingHorizontal="16dp"
         android:paddingTop="36dp"
         android:paddingBottom="20dp"
         android:visibility="gone">
@@ -215,10 +263,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
-            android:paddingStart="8dp"
+            android:paddingStart="12dp"
             android:text="@string/options_title"
             android:textColor="@color/ink"
-            android:textSize="22sp" />
+            android:textSize="26sp" />
 
         <ListView
             android:id="@+id/options_list"

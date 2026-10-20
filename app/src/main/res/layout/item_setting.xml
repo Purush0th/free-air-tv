@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Settings left-pane row: title, optional second line, and a value or a checkbox. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/settings_row"
     android:gravity="center_vertical"
-    android:minHeight="64dp"
+    android:minHeight="56dp"
     android:orientation="horizontal"
     android:paddingHorizontal="16dp"
-    android:paddingVertical="8dp">
+    android:paddingVertical="10dp">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -21,27 +23,37 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/row_primary"
-            android:textSize="21sp" />
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/sub"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
+            android:fontFeatureSettings="tnum"
             android:maxLines="2"
             android:textColor="@color/row_secondary"
-            android:textSize="16sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- "Shown" in the accent, "Hidden" in grey (disabled state), "New" for an update. -->
+    <!-- "New" for an update; plain values on About. -->
     <TextView
         android:id="@+id/value"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:duplicateParentState="false"
+        android:layout_marginStart="12dp"
         android:fontFamily="sans-serif-medium"
+        android:fontFeatureSettings="tnum"
         android:textColor="@color/row_value"
-        android:textSize="17sp"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- Ticked = on the channel list. -->
+    <ImageView
+        android:id="@+id/check"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="12dp"
+        android:importantForAccessibility="no"
         android:visibility="gone" />
 </LinearLayout>

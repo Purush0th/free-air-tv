@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The logo's three signal waves over a source dot, in the logo's teal, sky and blue. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <path
+        android:name="wave1"
+        android:pathData="M38.1,54.1A14,14 0 0,1 57.9,54.1"
+        android:strokeAlpha="0.18"
+        android:strokeColor="#FF00D2A8"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
+    <path
+        android:name="wave2"
+        android:pathData="M29.62,45.62A26,26 0 0,1 66.38,45.62"
+        android:strokeAlpha="0.18"
+        android:strokeColor="#FF0EA5E9"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
+    <path
+        android:name="wave3"
+        android:pathData="M21.13,37.13A38,38 0 0,1 74.87,37.13"
+        android:strokeAlpha="0.18"
+        android:strokeColor="#FF2563EB"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M43,64a5,5 0 1,0 10,0a5,5 0 1,0 -10,0" />
+</vector>

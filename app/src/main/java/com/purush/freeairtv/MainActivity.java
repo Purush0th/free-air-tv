@@ -2,6 +2,8 @@ package com.purush.freeairtv;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.Animatable;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -14,8 +16,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -80,6 +85,8 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
     private FrameLayout root;
     private SurfaceView surface;
     private TextView status;
+    private View loader;
+    private TextView loaderLabel;
     private View banner;
     private TextView bannerNum;
     private TextView bannerName;
@@ -102,6 +109,8 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
         root = (FrameLayout) surfaceParent();
         surface = findViewById(R.id.surface);
         status = findViewById(R.id.status);
+        loader = findViewById(R.id.loader);
+        loaderLabel = findViewById(R.id.loader_label);
         banner = findViewById(R.id.banner);
         bannerNum = findViewById(R.id.banner_num);
         bannerName = findViewById(R.id.banner_name);
@@ -155,6 +164,7 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
         update = updater.available();
         reloadChannels(store.lastChannelId());
         if (channels.isEmpty()) {
+            hideLoader();
             status.setText(R.string.no_channels);
             status.setVisibility(View.VISIBLE);
         } else {
@@ -284,8 +294,26 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
     }
 
     private void showConnecting() {
-        status.setText(getString(R.string.connecting, currentName()));
-        status.setVisibility(View.VISIBLE);
+        status.setVisibility(View.GONE);
+        loaderLabel.setText(currentName());
+        loader.setContentDescription(getString(R.string.connecting, currentName()));
+        if (loader.getVisibility() != View.VISIBLE) {
+            loader.setVisibility(View.VISIBLE);
+            Drawable d = ((ImageView) findViewById(R.id.loader_icon)).getDrawable();
+            if (d instanceof Animatable) {
+                ((Animatable) d).start();
+            }
+        }
+    }
+
+    private void hideLoader() {
+        if (loader.getVisibility() == View.VISIBLE) {
+            loader.setVisibility(View.GONE);
+            Drawable d = ((ImageView) findViewById(R.id.loader_icon)).getDrawable();
+            if (d instanceof Animatable) {
+                ((Animatable) d).stop();
+            }
+        }
     }
 
     @Override
@@ -300,6 +328,7 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
         handler.removeCallbacks(stallWatchdog);
         handler.removeCallbacks(showConnecting);
         failures = 0;
+        hideLoader();
         status.setVisibility(View.GONE);
     }
 
@@ -309,6 +338,7 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
         handler.removeCallbacks(stallWatchdog);
         handler.removeCallbacks(showConnecting);
         failures++;
+        hideLoader();
         int msg = failures >= HINT_AFTER_FAILURES ? R.string.retrying_hint : R.string.retrying;
         status.setText(getString(msg, currentName()));
         status.setVisibility(View.VISIBLE);
@@ -356,8 +386,8 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
         Channel ch = channels.get(current);
         bannerNum.setText(String.valueOf(current + 1));
         bannerName.setText(ch.name);
-        bannerTamil.setText(ch.tamil);
-        bannerTamil.setVisibility(ch.tamil.isEmpty() ? View.GONE : View.VISIBLE);
+        bannerTamil.setText(ch.locale);
+        bannerTamil.setVisibility(ch.locale.isEmpty() ? View.GONE : View.VISIBLE);
         updateBannerQuality();
         banner.setVisibility(View.VISIBLE);
         handler.removeCallbacks(hideBanner);
@@ -375,45 +405,85 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
     // ---- Panels ---------------------------------------------------------------------
 
     private boolean guideVisible() {
-        return guide.getVisibility() == View.VISIBLE;
+        return isShown(guide);
     }
 
     private boolean optionsVisible() {
-        return optionsPanel.getVisibility() == View.VISIBLE;
+        return isShown(optionsPanel);
     }
 
     private void showGuide() {
         hideOptions();
         banner.setVisibility(View.GONE);
-        guide.setVisibility(View.VISIBLE);
+        reveal(guide);
         list.requestFocus();
         list.setSelection(rowOf(current));
     }
 
     private void hideGuide() {
-        guide.setVisibility(View.GONE);
+        conceal(guide);
         showBanner();
     }
 
     private void showOptions() {
-        guide.setVisibility(View.GONE);
+        conceal(guide);
         banner.setVisibility(View.GONE);
         buildOptions();
-        optionsPanel.setVisibility(View.VISIBLE);
+        reveal(optionsPanel);
         optionsList.requestFocus();
         // Start on the quality that is selected.
         for (int i = 0; i < options.size(); i++) {
             OptionRow r = options.get(i);
             if (r.kind == OptionRow.QUALITY && r.height == player.quality()) {
-                optionsList.setSelection(i);
+                // Leave room above for the section label so it stays in view.
+                optionsList.setSelectionFromTop(i, Math.round(32 * getResources().getDisplayMetrics().density));
                 break;
             }
         }
     }
 
     private void hideOptions() {
-        optionsPanel.setVisibility(View.GONE);
+        conceal(optionsPanel);
     }
+
+    // Panels fade in and out; exit is quicker than entry. No slide: moving a view over the
+    // SurfaceView leaves the video's cut-out at the start position, cropping the panel's edge.
+    // ViewPropertyAnimator follows the system animation scale, so "Remove animations"
+    // in accessibility settings makes these instant.
+    private static final long PANEL_IN_MS = 180;
+    private static final long PANEL_OUT_MS = 120;
+    private static final Object CLOSING = new Object();
+
+    /** Visible and not on its way out. */
+    private static boolean isShown(View panel) {
+        return panel.getVisibility() == View.VISIBLE && panel.getTag() != CLOSING;
+    }
+
+    private void reveal(View panel) {
+        panel.animate().cancel();
+        panel.setTag(null);
+        if (panel.getVisibility() != View.VISIBLE) {
+            panel.setAlpha(0f);
+            panel.setVisibility(View.VISIBLE);
+        }
+        panel.animate().alpha(1f).setDuration(PANEL_IN_MS)
+                .setInterpolator(new DecelerateInterpolator()).withEndAction(null).start();
+    }
+
+    private void conceal(View panel) {
+        if (!isShown(panel)) {
+            return;
+        }
+        panel.animate().cancel();
+        panel.setTag(CLOSING);
+        panel.animate().alpha(0f).setDuration(PANEL_OUT_MS)
+                .setInterpolator(new AccelerateInterpolator())
+                .withEndAction(() -> {
+                    panel.setVisibility(View.GONE);
+                    panel.setTag(null);
+                }).start();
+    }
+
 
     @Override
     public void onBackPressed() {
@@ -463,6 +533,7 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
             case KeyEvent.KEYCODE_MEDIA_PAUSE:
                 player.togglePause();
                 if (player.isPaused()) {
+                    hideLoader();
                     status.setText(R.string.paused);
                     status.setVisibility(View.VISIBLE);
                 } else {
@@ -472,15 +543,11 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
             default:
                 break;
         }
+        if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SETTINGS) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
         if (guideVisible() || optionsVisible()) {
-            if (keyCode == KeyEvent.KEYCODE_MENU) {
-                if (optionsVisible()) {
-                    hideOptions();
-                } else {
-                    showOptions();
-                }
-                return true;
-            }
             return super.onKeyDown(keyCode, event); // the lists handle Up/Down/OK
         }
         switch (keyCode) {
@@ -498,7 +565,6 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
                 showGuide();
                 return true;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-            case KeyEvent.KEYCODE_MENU:
                 showOptions();
                 return true;
             default:
@@ -626,6 +692,7 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
             TextView name = v.findViewById(R.id.name);
             TextView sub = v.findViewById(R.id.tamil);
             TextView tag = v.findViewById(R.id.watching);
+            View dot = v.findViewById(R.id.watching_dot);
             if (row == ROW_UPDATE) {
                 num.setText("");
                 name.setText(getString(R.string.update_row, update.version));
@@ -633,14 +700,15 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
                 sub.setVisibility(View.VISIBLE);
                 tag.setText(R.string.update_new);
                 tag.setVisibility(View.VISIBLE);
+                dot.setVisibility(View.GONE);
             } else {
                 Channel ch = channels.get(row);
                 num.setText(String.valueOf(row + 1));
                 name.setText(ch.name);
-                sub.setText(ch.tamil);
-                sub.setVisibility(ch.tamil.isEmpty() ? View.GONE : View.VISIBLE);
-                tag.setText(R.string.watching);
-                tag.setVisibility(row == current ? View.VISIBLE : View.GONE);
+                sub.setText(ch.locale);
+                sub.setVisibility(ch.locale.isEmpty() ? View.GONE : View.VISIBLE);
+                tag.setVisibility(View.GONE);
+                dot.setVisibility(row == current ? View.VISIBLE : View.GONE);
             }
             return v;
         }
@@ -688,12 +756,12 @@ public class MainActivity extends Activity implements LivePlayer.Listener {
             LayoutInflater inflater = LayoutInflater.from(parent.getContext());
             if (row.kind == OptionRow.HEADING) {
                 TextView v = convertView != null ? (TextView) convertView
-                        : (TextView) inflater.inflate(R.layout.item_group, parent, false);
+                        : (TextView) inflater.inflate(R.layout.item_option_group, parent, false);
                 v.setText(row.text);
                 return v;
             }
             View v = convertView != null ? convertView
-                    : inflater.inflate(R.layout.item_setting, parent, false);
+                    : inflater.inflate(R.layout.item_option, parent, false);
             ((TextView) v.findViewById(R.id.title)).setText(row.text);
             TextView sub = v.findViewById(R.id.sub);
             String s = optionSub(row);
