@@ -23,7 +23,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/row_primary"
-            android:textSize="10.5sp" />
+            android:textSize="11.5sp" />
 
         <TextView
             android:id="@+id/sub"
@@ -33,7 +33,7 @@
             android:fontFeatureSettings="tnum"
             android:maxLines="2"
             android:textColor="@color/row_secondary"
-            android:textSize="9sp" />
+            android:textSize="10sp" />
     </LinearLayout>
 
     <!-- "New" for an update; plain values on About. -->
@@ -45,7 +45,7 @@
         android:fontFamily="sans-serif-medium"
         android:fontFeatureSettings="tnum"
         android:textColor="@color/row_value"
-        android:textSize="9sp"
+        android:textSize="10sp"
         android:visibility="gone" />
 
     <!-- Ticked = on the channel list. -->

@@ -4,15 +4,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;800&display=block" rel="stylesheet">
 <style>
-  /* 1280x720 (16:9), rendered into drawable-xxxhdpi (= the standard 320x180dp banner).
+  /* Laid out at 1280x720 (16:9) and rendered at quarter scale to the 320x180 px banner in
+     drawable-xhdpi, the size Fire TV, Plex and Tailscale use.
      Wordmark-led, like the Tailscale and Plex banners: a dark ground, the name large, the
      icon small. Everything sits in a centred safe area because launchers such as
      Projectivy zoom the focused tile and crop its edges. */
   html,body{margin:0;width:1280px;height:720px;overflow:hidden}
   body{background:#1C1C1C;font-family:"Plus Jakarta Sans",sans-serif;color:#fff}
-  .b{height:720px;display:flex;align-items:center;justify-content:center;gap:36px}
-  img{width:150px;height:150px;flex:none}
-  .name{white-space:nowrap;font-weight:800;font-size:132px;letter-spacing:-0.04em;line-height:1}
+  .b{height:720px;display:flex;align-items:center;justify-content:center;gap:48px}
+  img{width:196px;height:196px;flex:none}
+  .name{white-space:nowrap;font-weight:800;font-size:190px;letter-spacing:-0.04em;line-height:1}
   .name span{font-weight:500}
 </style></head>
 <body><div class="b"><img src="freeair-icon.svg" alt=""><div class="name">FreeAir <span>TV</span></div></div></body></html>

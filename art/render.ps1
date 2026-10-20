@@ -2,8 +2,8 @@
 # Usage: powershell -ExecutionPolicy Bypass -File art\render.ps1
 # Needs Chrome and network access (banner.html loads Plus Jakarta Sans from Google Fonts).
 #
-# Images are rendered larger than their density bucket needs: TV launchers (Projectivy,
-# the Fire TV home) scale banners and icons up to big tiles, and a small bitmap blurs.
+# The banner is drawn at its exact pixel size; the icon one bucket up, since launchers show
+# icons larger than 48dp.
 $ErrorActionPreference = 'Stop'
 $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
             "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
@@ -28,11 +28,11 @@ function Shot($page, $w, $h, $scale, $out) {
     Write-Host "  $out"
 }
 
-# Fire TV banner: 1280x720 in drawable-xxxhdpi, which Android treats as the standard
-# 320x180dp banner and scales down on the Stick. In a lower-density folder the same bitmap
-# would claim to be larger than a banner, and Projectivy crops the overflow.
-Remove-Item "$res\drawable-xhdpi\banner.png", "$res\drawable-xxhdpi\banner.png", "$res\drawable-xxxhdpi\banner.png" -ErrorAction SilentlyContinue
-Shot 'banner.html' 1280 720 1 "$res\drawable-xxxhdpi\tv_banner.png"
+# Fire TV banner: 320x180 px in drawable-xhdpi, Amazon's banner size and what Plex and
+# Tailscale ship. Launchers show it at about tile size, so it is drawn at its final pixel size
+# (the 1280x720 layout at quarter scale) rather than shrunk from a big bitmap, which blurs.
+Remove-Item "$res\drawable-xxhdpi\tv_banner.png", "$res\drawable-xxxhdpi\tv_banner.png" -ErrorAction SilentlyContinue
+Shot 'banner.html' 1280 720 0.25 "$res\drawable-xhdpi\tv_banner.png"
 
 # Launcher icon (48dp): one 192px copy in mipmap-xxxhdpi; Android scales it down on the Stick.
 Remove-Item "$res\mipmap-xhdpi\ic_launcher.png", "$res\mipmap-xxhdpi\ic_launcher.png" -ErrorAction SilentlyContinue
