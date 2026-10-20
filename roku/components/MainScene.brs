@@ -34,6 +34,7 @@ sub init()
     m.status = m.top.findNode("status")
     m.cardTimer = m.top.findNode("cardTimer")
     m.retryTimer = m.top.findNode("retryTimer")
+    m.stallTimer = m.top.findNode("stallTimer")
     m.options = m.top.findNode("options")
     m.optList = m.top.findNode("optList")
     m.settings = m.top.findNode("settings")
@@ -63,6 +64,7 @@ sub init()
     m.optList.observeField("itemSelected", "onOptionSelected")
     m.cardTimer.observeField("fire", "onCardTimer")
     m.retryTimer.observeField("fire", "onRetry")
+    m.stallTimer.observeField("fire", "onStall")
     m.loaderDelay.observeField("fire", "showLoader")
     m.settings.observeField("closed", "onSettingsClosed")
     m.settings.observeField("refresh", "onRefreshRequested")
@@ -247,8 +249,14 @@ sub play(i as integer, announce as boolean)
     content.title = ch.name
     content.streamFormat = "hls"
     content.live = true
+    ' The same User-Agent the Fire TV app sends; some CDNs serve by it.
+    content.HttpHeaders = ["User-Agent: FreeAirTV/" + appVersion()]
+    ' A chosen quality is pinned: the player may not climb above it or drop below it.
     m.cappedAt = bandwidthCap(ch.id)
-    if m.cappedAt > 0 then content.MaxBandwidth = m.cappedAt
+    if m.cappedAt > 0
+        content.MaxBandwidth = m.cappedAt
+        content.MinBandwidth = m.cappedAt - 2
+    end if
     m.playingHeight = 0
     m.video.control = "stop"
     m.video.content = content
@@ -283,8 +291,8 @@ sub onVariants(event as object)
     if m.options.visible then buildOptions()
 end sub
 
-' MaxBandwidth (kbps) for the chosen quality on this channel: its best picture no taller than
-' the choice, or its smallest if all are taller. 0 = no limit.
+' The bitrate (kbps, rounded up) to pin for the chosen quality on this channel: its best picture
+' no taller than the choice, or its smallest if all are taller. 0 = Auto (no pin).
 function bandwidthCap(id as string) as integer
     if m.quality <= 0 or not m.variants.DoesExist(id) then return 0
     list = m.variants[id]
@@ -296,7 +304,6 @@ function bandwidthCap(id as string) as integer
             exit for
         end if
     end for
-    if pick.height = list[0].height then return 0  ' the best on offer anyway
     return pick.bandwidth \ 1000 + 1
 end function
 
@@ -304,6 +311,12 @@ end function
 sub onSegment()
     seg = m.video.streamingSegment
     if seg = invalid then return
+    ' Only picture segments: channels that send audio separately (DD Tamil does) report audio
+    ' segments too, with no size and a low bitrate that looked like 360p. segType: 0 audio and
+    ' video together, 1 audio, 2 video, 3 captions.
+    if seg.DoesExist("segType")
+        if seg.segType = 1 or seg.segType = 3 then return
+    end if
     h = 0
     if seg.DoesExist("height") then h = seg.height
     if h = 0 and seg.DoesExist("segBitrateBps") and m.current >= 0
@@ -426,6 +439,7 @@ sub openSettings()
     ' Like the Fire TV Settings screen, it covers the picture, so playback stops meanwhile.
     m.video.control = "stop"
     hideLoader()
+    m.stallTimer.control = "stop"
     m.card.visible = false
     m.status.visible = false
     m.settings.refreshStatus = ""
@@ -492,8 +506,11 @@ sub onVideoState()
     state = m.video.state
     if state = "buffering"
         if not m.loader.visible then m.loaderDelay.control = "start"
+        m.stallTimer.control = "stop"
+        m.stallTimer.control = "start"
     else
         hideLoader()
+        m.stallTimer.control = "stop"
     end if
     if state = "playing"
         m.retries = 0
@@ -506,18 +523,31 @@ sub onVideoState()
     else if state = "buffering"
         setCardState("", false)  ' the loader shows the connecting
     else if state = "error" or state = "finished"
-        ' Live streams drop now and then: retry a few times before giving up.
         print "FreeAir: "; state; " "; m.video.errorCode; " "; m.video.errorMsg
-        if m.retries < 3
-            m.retries = m.retries + 1
-            setCardState("Reconnecting…", false)
-            m.retryTimer.control = "start"
-        else
-            setCardState("Not available now", false)
-        end if
-        showCard()
-        m.cardTimer.control = "stop"
+        reconnect()
     end if
+end sub
+
+' Live streams drop now and then: retry a few times (5 s apart) before giving up.
+sub reconnect()
+    if m.retries < 3
+        m.retries = m.retries + 1
+        setCardState("Reconnecting…", false)
+        m.retryTimer.control = "start"
+    else
+        m.video.control = "stop"
+        setCardState("Not available now", false)
+    end if
+    showCard()
+    m.cardTimer.control = "stop"
+end sub
+
+' Still buffering 30 s after it started: reconnect, as the Fire TV app does.
+sub onStall()
+    if m.video.state <> "buffering" or m.settings.visible then return
+    print "FreeAir: stalled for 30 s, reconnecting"
+    hideLoader()
+    reconnect()
 end sub
 
 sub onRetry()

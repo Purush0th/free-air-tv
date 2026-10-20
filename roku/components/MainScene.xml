@@ -112,5 +112,7 @@
 
         <Timer id="cardTimer" duration="4" repeat="false" />
         <Timer id="retryTimer" duration="5" repeat="false" />
+        <!-- Stall watchdog, as on Fire TV: a channel stuck buffering for 30 s is reconnected. -->
+        <Timer id="stallTimer" duration="30" repeat="false" />
     </children>
 </component>
