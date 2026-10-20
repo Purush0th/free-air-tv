@@ -19,7 +19,7 @@ function Shot($page, $w, $h, $scale, $out) {
     if (Test-Path $out) { Remove-Item $out }
     # Chrome logs harmless notices on stderr; don't let Windows PowerShell treat them as errors.
     $ErrorActionPreference = 'Continue'
-    & $chrome --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files `
+    & $chrome --headless=new --disable-gpu --disable-lcd-text --hide-scrollbars --allow-file-access-from-files `
         --virtual-time-budget=8000 --default-background-color=00000000 `
         --force-device-scale-factor=$scale --window-size=$w,$h "--screenshot=$out" "$artUrl/$page" 2>$null | Out-Null
     $deadline = (Get-Date).AddSeconds(30)
