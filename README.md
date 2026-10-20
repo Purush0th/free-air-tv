@@ -43,7 +43,8 @@ The app volume is separate from the TV's: the Fire TV remote's volume buttons st
 {"id": "fa-tv-ch-12", "name": "Thanthi TV", "locale": "தந்தி டிவி", "group": "News", "url": "https://…/index.m3u8", "lang": "ta-IN"}
 ```
 
-- `id` stays the same for a channel even if its `url` changes, because TVs remember hidden channels and the last channel watched by it.
+- `id` is the channel's primary key: TVs store each channel's tick and the last channel watched by it. Never change or reuse an id; a new channel gets a new one.
+- `isActive` (optional, default `true`): set it to `false` to retire a channel without deleting it. TVs hide it but keep its tick, so it comes back as it was if it is reactivated. A channel deleted from the file loses its tick.
 - `url` must be an HLS (`.m3u8`) stream over http(s).
 - `locale` is the channel's name in its own language and script, shown under `name`; it may be empty.
 - `lang` is a language tag such as `ta-IN`, `hi-IN` or `en-IN`. Settings groups channels by it, and a whole language can be switched off. Without it a channel counts as Tamil.

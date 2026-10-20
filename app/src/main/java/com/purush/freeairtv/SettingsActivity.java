@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 /**
  * Settings in two panes, 30/70. Left: each language under Channels, with a tick for the whole
  * language, then Updates and About. Right, in smaller type: what the focused left item holds:
- * Enable All, Disable All and that language's channels to tick one by one; the two update
+ * a master tick for all of a language's channels, then each channel's own tick; the two update
  * checks with when each last ran; or the app's details.
  *
  * <p>Up/Down move in a pane, Right enters the right pane, Left returns, OK toggles or acts.
@@ -47,8 +47,7 @@ public class SettingsActivity extends Activity {
         static final int ABOUT = 4;
         static final int CHANNEL = 5;
         static final int INFO = 6;
-        static final int ENABLE_ALL = 7;
-        static final int DISABLE_ALL = 8;
+        static final int ALL_CHANNELS = 7;
 
         final int kind;
         final String text;
@@ -198,8 +197,7 @@ public class SettingsActivity extends Activity {
                 } else {
                     detailSub.setText(getString(R.string.lang_detail_on, shownCount(channels), channels.size()));
                 }
-                detailRows.add(new Row(Row.ENABLE_ALL, getString(R.string.enable_all), item.lang, null, null));
-                detailRows.add(new Row(Row.DISABLE_ALL, getString(R.string.disable_all), item.lang, null, null));
+                detailRows.add(new Row(Row.ALL_CHANNELS, getString(R.string.all_channels), item.lang, null, null));
                 for (Channel ch : channels) {
                     detailRows.add(new Row(Row.CHANNEL, null, item.lang, ch, null));
                 }
@@ -265,15 +263,20 @@ public class SettingsActivity extends Activity {
                 store.setHidden(row.channel, !store.isHidden(row.channel));
                 languageChanged(row.lang);
                 break;
-            case Row.ENABLE_ALL:
-                store.setLanguageHidden(row.lang, false);
-                store.setHidden(store.channelsIn(row.lang), false);
+            case Row.ALL_CHANNELS: {
+                // All on: switch every channel off. Some or none on: switch them all on,
+                // the language included.
+                List<Channel> all = store.channelsIn(row.lang);
+                boolean allOn = !store.isLanguageHidden(row.lang) && shownCount(all) == all.size();
+                if (allOn) {
+                    store.setHidden(all, true);
+                } else {
+                    store.setLanguageHidden(row.lang, false);
+                    store.setHidden(all, false);
+                }
                 languageChanged(row.lang);
                 break;
-            case Row.DISABLE_ALL:
-                store.setHidden(store.channelsIn(row.lang), true);
-                languageChanged(row.lang);
-                break;
+            }
             case Row.UPDATES:
                 Updater.Release r = updater.available();
                 if (r != null) {
@@ -411,7 +414,8 @@ public class SettingsActivity extends Activity {
     private String sourceText() {
         switch (store.source()) {
             case ADB_OVERRIDE: return getString(R.string.source_override);
-            case GITHUB: return getString(R.string.source_github, ago(store.remoteFetchedAt()));
+            case GITHUB: return store.remoteFetchedAt() == 0 ? getString(R.string.source_github_never)
+                    : getString(R.string.source_github, ago(store.remoteFetchedAt()));
             default: return getString(R.string.source_builtin);
         }
     }
@@ -474,7 +478,6 @@ public class SettingsActivity extends Activity {
                 case Row.INFO:
                     return false;
                 case Row.CHANNEL:
-                case Row.DISABLE_ALL:
                     return !store.isLanguageHidden(row.lang);
                 default:
                     return true;
@@ -528,6 +531,7 @@ public class SettingsActivity extends Activity {
                         title.setText(r != null ? getString(R.string.update_install, r.version)
                                 : getString(R.string.update_check));
                         sub.setText(updateStatus != null ? updateStatus
+                                : updater.checkedAt() == 0 ? getString(R.string.update_status_never, version)
                                 : getString(R.string.update_status, version, ago(updater.checkedAt())));
                     }
                     sub.setVisibility(View.VISIBLE);
@@ -543,13 +547,18 @@ public class SettingsActivity extends Activity {
                     sub.setVisibility(View.VISIBLE);
                     break;
                 case Row.ABOUT:
-                case Row.ENABLE_ALL:
                     title.setText(row.text);
                     break;
-                case Row.DISABLE_ALL:
+                case Row.ALL_CHANNELS: {
+                    List<Channel> all = store.channelsIn(row.lang);
+                    int on = store.isLanguageHidden(row.lang) ? 0 : shownCount(all);
                     title.setText(row.text);
-                    v.setAlpha(store.isLanguageHidden(row.lang) ? 0.4f : 1f);
+                    check.setImageResource(on == all.size() ? R.drawable.check_on
+                            : on == 0 ? R.drawable.check_off : R.drawable.check_some);
+                    check.setVisibility(View.VISIBLE);
+                    v.setContentDescription(row.text + ", " + getString(R.string.lang_detail_on, on, all.size()));
                     break;
+                }
                 case Row.CHANNEL: {
                     boolean hidden = store.isHidden(row.channel);
                     title.setText(row.channel.name);

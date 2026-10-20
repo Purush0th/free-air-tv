@@ -34,7 +34,10 @@ import java.util.Set;
  *   <li>the copy last downloaded from the GitHub repository's channels.json</li>
  *   <li>the list built into the APK</li>
  * </ol>
- * Hidden channels are remembered by id, so they stay hidden when the list is updated.
+ * Choices are stored by channel id, the list's primary key: a channel keeps its tick when the
+ * list is updated, a new channel starts ticked, and a channel removed from the list loses its
+ * stored choice. A channel marked "isActive": false is soft-deleted: hidden everywhere, but its
+ * stored choice is kept in case it comes back.
  * A whole language can be switched off too; its channels then leave the guide whatever
  * their own setting.
  */
@@ -49,7 +52,6 @@ final class ChannelStore {
     private static final String KEY_FETCHED_AT = "remote_fetched_at";
     private static final String KEY_LAST = "last_channel_id";
     private static final String KEY_HIDDEN_LANGS = "hidden_langs";
-    private static final String KEY_IDS_MIGRATED = "ids_migrated_v2";
     /** Language of channels that do not name one. */
     static final String DEFAULT_LANG = "ta-IN";
     /** Channel ids before the fa-tv-ch-N scheme, so hidden channels and the last channel carry over. */
@@ -84,26 +86,37 @@ final class ChannelStore {
 
     ChannelStore(Context context) {
         this.context = context.getApplicationContext();
-        migrateIds();
     }
 
-    /** Once: rename stored channel ids from the old scheme to fa-tv-ch-N. */
-    private void migrateIds() {
+    /** The current id for one that may predate the fa-tv-ch-N scheme. */
+    private static String canonicalId(String id) {
+        String renamed = LEGACY_IDS.get(id);
+        return renamed != null ? renamed : id;
+    }
+
+    /**
+     * Brings stored choices in line with the loaded list: old-scheme ids are renamed, and when
+     * the list is the published one, choices for channels no longer in it at all are dropped.
+     * Soft-deleted channels are still in the list, so their choices stay.
+     */
+    private void reconcile() {
         SharedPreferences p = prefs();
-        if (p.getBoolean(KEY_IDS_MIGRATED, false)) {
-            return;
+        Set<String> listed = new HashSet<>();
+        for (Channel ch : all) {
+            listed.add(ch.id);
         }
+        boolean prune = source == Source.GITHUB;
         Set<String> hidden = new HashSet<>();
         for (String id : p.getStringSet(KEY_HIDDEN, new HashSet<>())) {
-            String renamed = LEGACY_IDS.get(id);
-            hidden.add(renamed != null ? renamed : id);
+            String current = canonicalId(id);
+            if (!prune || listed.contains(current)) {
+                hidden.add(current);
+            }
         }
         String last = p.getString(KEY_LAST, null);
-        String lastRenamed = last == null ? null : LEGACY_IDS.get(last);
         p.edit()
                 .putStringSet(KEY_HIDDEN, hidden)
-                .putString(KEY_LAST, lastRenamed != null ? lastRenamed : last)
-                .putBoolean(KEY_IDS_MIGRATED, true)
+                .putString(KEY_LAST, last == null ? null : canonicalId(last))
                 .apply();
     }
 
@@ -111,6 +124,11 @@ final class ChannelStore {
 
     /** Reloads the list from the best available source. */
     void load() {
+        loadList();
+        reconcile();
+    }
+
+    private void loadList() {
         File override = new File(context.getExternalFilesDir(null), OVERRIDE_FILE);
         if (tryLoad(override, Source.ADB_OVERRIDE)) {
             return;
@@ -154,7 +172,7 @@ final class ChannelStore {
             JSONObject o = array.getJSONObject(i);
             String name = o.getString("name").trim();
             String url = o.getString("url").trim();
-            String id = o.optString("id", name).trim();
+            String id = canonicalId(o.optString("id", name).trim());
             if (!url.startsWith("http://") && !url.startsWith("https://")) {
                 throw new IllegalArgumentException("Channel " + (i + 1) + " has a non-http URL");
             }
@@ -165,9 +183,9 @@ final class ChannelStore {
             String locale = o.optString("locale", o.optString("tamil", "")).trim();
             String lang = o.optString("lang", "").trim();
             out.add(new Channel(id, name, locale, o.optString("group", "").trim(), url,
-                    lang.isEmpty() ? DEFAULT_LANG : lang));
+                    lang.isEmpty() ? DEFAULT_LANG : lang, o.optBoolean("isActive", true)));
         }
-        if (out.isEmpty()) {
+        if (active(out).isEmpty()) {
             throw new IllegalArgumentException("No channels");
         }
         return out;
@@ -250,9 +268,19 @@ final class ChannelStore {
         return source;
     }
 
-    /** Every channel, including hidden ones (for Settings). */
+    /** Every active channel, ticked or not: the master list (Settings, About). */
     List<Channel> all() {
-        return new ArrayList<>(all);
+        return active(all);
+    }
+
+    private static List<Channel> active(List<Channel> channels) {
+        List<Channel> out = new ArrayList<>();
+        for (Channel ch : channels) {
+            if (ch.active) {
+                out.add(ch);
+            }
+        }
+        return out;
     }
 
     /** The channels to show in the guide and to zap through. */
@@ -260,7 +288,7 @@ final class ChannelStore {
         Set<String> hidden = hiddenIds();
         Set<String> hiddenLangs = hiddenLangs();
         List<Channel> out = new ArrayList<>();
-        for (Channel ch : all) {
+        for (Channel ch : all()) {
             if (!hidden.contains(ch.id) && !hiddenLangs.contains(ch.lang)) {
                 out.add(ch);
             }
@@ -271,7 +299,7 @@ final class ChannelStore {
     /** Language tags in the order they first appear in the list. */
     List<String> languages() {
         Set<String> langs = new LinkedHashSet<>();
-        for (Channel ch : all) {
+        for (Channel ch : all()) {
             langs.add(ch.lang);
         }
         return new ArrayList<>(langs);
@@ -280,7 +308,7 @@ final class ChannelStore {
     /** Every channel in one language, in list order. */
     List<Channel> channelsIn(String lang) {
         List<Channel> out = new ArrayList<>();
-        for (Channel ch : all) {
+        for (Channel ch : all()) {
             if (ch.lang.equals(lang)) {
                 out.add(ch);
             }

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Settings right-pane row: item_setting with type 30% smaller (second line held at the 11sp floor). -->
+<!-- Settings right-pane row: item_setting with smaller type, for the denser right pane. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/settings_row"
     android:gravity="center_vertical"
-    android:minHeight="40dp"
+    android:minHeight="34dp"
     android:orientation="horizontal"
     android:paddingHorizontal="14dp"
-    android:paddingVertical="6dp">
+    android:paddingVertical="5dp">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -23,7 +23,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/row_primary"
-            android:textSize="13sp" />
+            android:textSize="10.5sp" />
 
         <TextView
             android:id="@+id/sub"
@@ -33,7 +33,7 @@
             android:fontFeatureSettings="tnum"
             android:maxLines="2"
             android:textColor="@color/row_secondary"
-            android:textSize="11sp" />
+            android:textSize="9sp" />
     </LinearLayout>
 
     <!-- "New" for an update; plain values on About. -->
@@ -45,14 +45,14 @@
         android:fontFamily="sans-serif-medium"
         android:fontFeatureSettings="tnum"
         android:textColor="@color/row_value"
-        android:textSize="11sp"
+        android:textSize="9sp"
         android:visibility="gone" />
 
     <!-- Ticked = on the channel list. -->
     <ImageView
         android:id="@+id/check"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
         android:layout_marginStart="12dp"
         android:importantForAccessibility="no"
         android:visibility="gone" />

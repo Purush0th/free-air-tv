@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Master checkbox when only some of a language's channels are on. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/check_some_selected" android:state_selected="true" />
+    <item android:drawable="@drawable/check_some_base" />
+</selector>
